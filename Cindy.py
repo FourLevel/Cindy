@@ -12,11 +12,21 @@ df = pd.read_excel('Data_Value_20241115.xlsx', sheet_name='ESG+FIN_Value_2024111
 # 針對每一個 No，將 Property, Plant & Equip 往前推一年
 df['PROPERTY, PLANT & EQUIP - NET t-1'] = df.groupby('No')['PROPERTY, PLANT & EQUIP - NET'].shift(1)
 
+# 將年份變成 Dummy Variable
+df['Year'] = df['Year'].astype(str)
+year_dummies = pd.get_dummies(df['Year'], drop_first=True)
+df = pd.concat([df, year_dummies], axis=1)
+
+# 將國家變成 Dummy Variable
+df['Country'] = df['Country'].astype(str)
+country_dummies = pd.get_dummies(df['Country'], drop_first=True)
+df = pd.concat([df, country_dummies], axis=1)
+
 # 檢查每一欄位缺失值的比例
 missing_percentage = df.isnull().sum() / len(df) * 100
 print(missing_percentage)
 
-# 刪除 missing percentage 大於 10% 的欄位
+# 刪除 missing percentage 大於 21% 的欄位
 df.dropna(axis=1, thresh=len(df) * 0.79, inplace=True)
 
 # 刪除 missing value
@@ -97,12 +107,16 @@ df['Altman_Z_Score'] = calculate_altman_z_score(df)
 # 將 df 中的 KZ Index 設為 變數 y，其他變數設為變數 X
 y_kz = df['KZ Index']
 y_altman = df['Altman_Z_Score']
-X = df.drop(columns=['KZ Index', 'Altman_Z_Score', 'No', 'ISIN CODE', 'Year', 'State Owned Enterprise (SOE)'])
+X_quantitative = df.drop(columns=['KZ Index', 'Altman_Z_Score', 'No', 'ISIN CODE', 'Year', 'Country', 'State Owned Enterprise (SOE)', '2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024', 'INDONESIA', 'JAPAN', 'MALAYSIA', 'PHILIPPINES', 'SINGAPORE', 'SOUTH KOREA', 'TAIWAN', 'THAILAND'])
+X_dummy = df[['2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024', 'INDONESIA', 'JAPAN', 'MALAYSIA', 'PHILIPPINES', 'SINGAPORE', 'SOUTH KOREA', 'TAIWAN', 'THAILAND']]
 
 # 將 X 變數進行標準化，以 std_ 開頭，另存成 std_X，並新增到 X 中
-std_X = (X - X.mean()) / X.std()
-std_X.columns = ['std_' + col for col in std_X.columns]
-X = pd.concat([X, std_X], axis=1)
+std_X_quantitative = (X_quantitative - X_quantitative.mean()) / X_quantitative.std()
+std_X_quantitative.columns = ['std_' + col for col in std_X_quantitative.columns]
+X_quantitative = pd.concat([X_quantitative, std_X_quantitative], axis=1)
+
+# 將 X 合併
+X = pd.concat([X_quantitative, X_dummy], axis=1)
 
 # 將每一個 X 變數與 y_kz 和 y_altman 做迴歸分析，並分別整理成 dataframe
 p_value_kz = []
@@ -117,7 +131,7 @@ print(p_value_altman_df)
 
 # 計算 X 的相關係數矩陣，並匯出
 corr_matrix = X.corr()
-# corr_matrix.to_excel('corr_matrix.xlsx')
+# corr_matrix.to_excel('corr_matrix.xlsx', sheet_name='New')
 
 # 設定要留下的 X 變數
 X_to_keep = ['std_ESG Combined Score', 'std_ESG Controversies Score', 'std_Total CO2 Equivalent Emissions To Revenues USD in millions', 'std_CO2 Equivalents Emission Total', 'std_Value - Board Structure/Board Diversity', 'std_Value - Compensation Policy/Board Member Compensation', 'std_INCREASE/DECREASE IN CASH/SHOR', 'std_TOTAL DEBT', 'std_MARKET VALUE', 'std_WORKING CAPITAL', 'std_BOOK VALUE PER SHARE']
@@ -136,3 +150,5 @@ model_kz = sm.OLS(y_kz, X_selected).fit()
 model_altman = sm.OLS(y_altman, X_selected).fit()
 print(model_kz.summary())
 print(model_altman.summary())
+
+# ESG 分開的分數加進去
