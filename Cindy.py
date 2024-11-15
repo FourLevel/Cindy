@@ -108,7 +108,7 @@ df['Altman_Z_Score'] = calculate_altman_z_score(df)
 y_kz = df['KZ Index']
 y_altman = df['Altman_Z_Score']
 X_quantitative = df.drop(columns=['KZ Index', 'Altman_Z_Score', 'No', 'ISIN CODE', 'Year', 'Country', 'State Owned Enterprise (SOE)', '2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024', 'INDONESIA', 'JAPAN', 'MALAYSIA', 'PHILIPPINES', 'SINGAPORE', 'SOUTH KOREA', 'TAIWAN', 'THAILAND'])
-X_dummy = df[['2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024', 'INDONESIA', 'JAPAN', 'MALAYSIA', 'PHILIPPINES', 'SINGAPORE', 'SOUTH KOREA', 'TAIWAN', 'THAILAND']]
+X_dummy = df[['State Owned Enterprise (SOE)', '2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024', 'INDONESIA', 'JAPAN', 'MALAYSIA', 'PHILIPPINES', 'SINGAPORE', 'SOUTH KOREA', 'TAIWAN', 'THAILAND']]
 
 # 將 X 變數進行標準化，以 std_ 開頭，另存成 std_X，並新增到 X 中
 std_X_quantitative = (X_quantitative - X_quantitative.mean()) / X_quantitative.std()
@@ -121,28 +121,42 @@ X = pd.concat([X_quantitative, X_dummy], axis=1)
 # 將每一個 X 變數與 y_kz 和 y_altman 做迴歸分析，並分別整理成 dataframe
 p_value_kz = []
 p_value_altman = []
-for var in std_X.columns:
-    p_value_kz.append(pearsonr(std_X[var], y_kz)[1])
-    p_value_altman.append(pearsonr(std_X[var], y_altman)[1])
-p_value_kz_df = pd.DataFrame({'Variable': std_X.columns, 'p_value_kz': p_value_kz})
-p_value_altman_df = pd.DataFrame({'Variable': std_X.columns, 'p_value_altman': p_value_altman})
+for var in X.columns:
+    p_value_kz.append(pearsonr(X[var], y_kz)[1])
+    p_value_altman.append(pearsonr(X[var], y_altman)[1])
+p_value_kz_df = pd.DataFrame({'Variable': X.columns, 'p_value_kz': p_value_kz})
+p_value_altman_df = pd.DataFrame({'Variable': X.columns, 'p_value_altman': p_value_altman})
 print(p_value_kz_df)
 print(p_value_altman_df)
 
 # 計算 X 的相關係數矩陣，並匯出
-corr_matrix = X.corr()
+corr_matrix = X_quantitative.corr()
 # corr_matrix.to_excel('corr_matrix.xlsx', sheet_name='New')
 
-# 設定要留下的 X 變數
-X_to_keep = ['std_ESG Combined Score', 'std_ESG Controversies Score', 'std_Total CO2 Equivalent Emissions To Revenues USD in millions', 'std_CO2 Equivalents Emission Total', 'std_Value - Board Structure/Board Diversity', 'std_Value - Compensation Policy/Board Member Compensation', 'std_INCREASE/DECREASE IN CASH/SHOR', 'std_TOTAL DEBT', 'std_MARKET VALUE', 'std_WORKING CAPITAL', 'std_BOOK VALUE PER SHARE']
-X_selected = std_X[X_to_keep]
+# 設定要留下的 X 量化變數
+X_quantitative_to_keep = ['std_Environment Pillar Score', 'std_Social Pillar Score', 'std_Governance Pillar Score', 
+                          'std_Total CO2 Equivalent Emissions To Revenues USD in millions', 'std_CO2 Equivalents Emission Total', 
+                          'std_Value - Board Structure/Board Diversity', 'std_Value - Compensation Policy/Board Member Compensation', 
+                          'std_INCREASE/DECREASE IN CASH/SHOR', 'std_TOTAL DEBT', 'std_MARKET VALUE', 'std_WORKING CAPITAL', 'std_BOOK VALUE PER SHARE']
+X_quantitative_selected = X_quantitative[X_quantitative_to_keep]
 
 # 計算 X 的 VIF，不要用科學記號
 pd.set_option('display.float_format', lambda x: '%.4f' % x)
 vif = pd.DataFrame()
-vif["features"] = X_selected.columns
-vif["VIF Factor"] = [variance_inflation_factor(X_selected.values, i) for i in range(X_selected.shape[1])]
+vif["features"] = X_quantitative_selected.columns
+vif["VIF Factor"] = [variance_inflation_factor(X_quantitative_selected.values, i) for i in range(X_quantitative_selected.shape[1])]
 print(vif)
+
+# 設定要留下的 X 虛擬變數
+X_dummy_to_keep = ['State Owned Enterprise (SOE)', '2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024', 
+                   'INDONESIA', 'JAPAN', 'MALAYSIA', 'PHILIPPINES', 'SINGAPORE', 'SOUTH KOREA', 'TAIWAN', 'THAILAND']
+X_dummy_selected = X_dummy[X_dummy_to_keep]
+
+# 合併 X 變數
+X_selected = pd.concat([X_quantitative_selected, X_dummy_selected], axis=1)
+
+# 確保所有數據都是數值型
+X_selected = X_selected.astype(float)
 
 # 進行迴歸分析
 X_selected = sm.add_constant(X_selected)
@@ -150,5 +164,3 @@ model_kz = sm.OLS(y_kz, X_selected).fit()
 model_altman = sm.OLS(y_altman, X_selected).fit()
 print(model_kz.summary())
 print(model_altman.summary())
-
-# ESG 分開的分數加進去
