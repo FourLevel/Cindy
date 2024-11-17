@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from scipy.stats import pearsonr
 import statsmodels.api as sm
-
+from openpyxl import load_workbook
 # 讀取 excel 檔案
 df = pd.read_excel('Data_Value_20241115.xlsx', sheet_name='ESG+FIN_Value_20241115')
 
@@ -164,3 +164,105 @@ model_kz = sm.OLS(y_kz, X_selected).fit()
 model_altman = sm.OLS(y_altman, X_selected).fit()
 print(model_kz.summary())
 print(model_altman.summary())
+
+
+# 保留 model_altman 的結果
+# 將模型內變數之 Coefficient, Std. Error, p-value, VIF 保存成 dataframe
+coefficients = model_altman.params
+std_errors = model_altman.bse
+p_values = model_altman.pvalues
+
+# Calculate VIF
+vif_data = pd.DataFrame()
+vif_data["Variable"] = X_selected.columns
+vif_data["VIF"] = [variance_inflation_factor(X_selected.values, i) for i in range(X_selected.shape[1])]
+
+# Merge results
+results_df = pd.DataFrame({
+    "Coefficient": coefficients,
+    "Std. Error": std_errors,
+    "p-value": p_values
+}).reset_index().rename(columns={"index": "Variable"})
+
+# Merge VIF
+results_df = results_df.merge(vif_data, on="Variable")
+
+# Round values to four decimal places
+results_df = results_df.round(4)
+
+# Add stars based on significance
+def significance_stars(p):
+    if p < 0.001:
+        return '***'
+    elif p < 0.01:
+        return '**'
+    elif p < 0.05:
+        return '*'
+    elif p < 0.1:
+        return '.'
+    else:
+        return ''
+
+results_df['p-value'] = results_df['p-value'].apply(lambda x: f"{x:.4f}{significance_stars(x)}")
+
+# Print the table and explain the stars
+print(results_df.to_markdown(index=False))
+print("\nExplanation of the stars：")
+print("***：Significant at the 0.1% level")
+print("**：Significant at the 1% level")
+print("*：Significant at the 5% level")
+print(".: Significant at the 10% level")
+
+# 將 results_df 存成 excel 檔案
+results_df.to_excel('results_df_altman.xlsx', index=False)
+
+
+# 保留 model_kz 的結果
+# 將模型內變數之 Coefficient, Std. Error, p-value, VIF 保存成 dataframe
+coefficients = model_kz.params
+std_errors = model_kz.bse
+p_values = model_kz.pvalues
+
+# Calculate VIF
+vif_data = pd.DataFrame()
+vif_data["Variable"] = X_selected.columns
+vif_data["VIF"] = [variance_inflation_factor(X_selected.values, i) for i in range(X_selected.shape[1])]
+
+# Merge results
+results_df = pd.DataFrame({
+    "Coefficient": coefficients,
+    "Std. Error": std_errors,
+    "p-value": p_values
+}).reset_index().rename(columns={"index": "Variable"})
+
+# Merge VIF
+results_df = results_df.merge(vif_data, on="Variable")
+
+# Round values to four decimal places
+results_df = results_df.round(4)
+
+# Add stars based on significance
+def significance_stars(p):
+    if p < 0.001:
+        return '***'
+    elif p < 0.01:
+        return '**'
+    elif p < 0.05:
+        return '*'
+    elif p < 0.1:
+        return '.'
+    else:
+        return ''
+
+results_df['p-value'] = results_df['p-value'].apply(lambda x: f"{x:.4f}{significance_stars(x)}")
+
+# Print the table and explain the stars
+print(results_df.to_markdown(index=False))
+print("\nExplanation of the stars：")
+print("***：Significant at the 0.1% level")
+print("**：Significant at the 1% level")
+print("*：Significant at the 5% level")
+print(".: Significant at the 10% level")
+
+# 將 results_df 存成 excel 檔案
+results_df.to_excel('results_df_kz.xlsx', index=False)
