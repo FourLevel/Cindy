@@ -8,8 +8,10 @@ pd.set_option('display.width', 150)
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 
-# 1. 匯入 "Aggr 2014-2023_All New.csv" 檔案，移除具有空值的列
-df = pd.read_csv("Aggr 2014-2023_All New.csv")
+
+## 開始進行樣本分佈分析
+# 1. 匯入 "Aggr 2014-2023_Old.csv" 檔案，移除具有空值的列
+df = pd.read_csv("Aggr 2014-2023_Old.csv")
 df.dropna(inplace=True)
 
 # 取得總樣本數
@@ -52,30 +54,30 @@ industry_mapping = dict(zip(icb_df['ICB code'], icb_df['Industry']))
 df['industry_name'] = df['icbcode'].map(industry_mapping)
 industry_counts = df['industry_name'].value_counts()
 
-print("\n各產業分佈:")
+print("\n各產業分佈：")
 for industry, count in industry_counts.items():
     print(f"{industry}: {count}")
 
 # 4. 統計 year 年份數據
 year_counts = df['year'].value_counts().sort_index()
 
-print("\n各年份分佈:")
+print("\n各年份分佈：")
 for year, count in year_counts.items():
     print(f"{year}: {count}")
 
 # 生成完整的分佈表格
-print("\n表格 1: 樣本分佈")
-print(f"全部樣本: {total_samples}")
+print("\n表格 1：樣本分佈")
+print(f"全部樣本：{total_samples}")
 
-print("\n各國家:")
+print("\n各國家：")
 for country, count in country_counts.items():
     print(f"{country}: {count}")
 
-print("\n各產業:")
+print("\n各產業：")
 for industry, count in industry_counts.items():
     print(f"{industry}: {count}")
 
-print("\n各年份:")
+print("\n各年份：")
 for year, count in year_counts.items():
     print(f"{year}: {count}")
 
@@ -118,7 +120,7 @@ variables = {
 }
 
 # 檢查是否有缺失欄位
-print("\n資料集欄位列表:")
+print("\n資料集欄位列表：")
 for col in sorted(df.columns.tolist()):
     print(f"- {col}")
 
@@ -142,21 +144,22 @@ for col, display_name in variables.items():
             'Median': median_val,
             'Max': max_val
         })
-        print(f"已處理變數: {col} -> {display_name}")
+        print(f"已處理變數：{col} -> {display_name}")
     else:
-        print(f"警告: 找不到欄位 '{col}'")
+        print(f"警告：找不到欄位 '{col}'")
 
-# 將結果轉換為DataFrame
+# 將結果轉換為 DataFrame
 stats_df = pd.DataFrame(stats_results)
 
 # 顯示結果
-print("\n表格 3: 敘述性統計量")
+print("\n表格 3：敘述性統計量")
 pd.options.display.float_format = '{:.3f}'.format
 print(stats_df)
 
 # 儲存為 CSV 檔案
 stats_df.to_csv("summary_statistics_results.csv", index=False, float_format='%.3f')
 print("\n敘述性統計結果已保存至 'summary_statistics_results.csv'")
+
 
 ## 開始進行相關係數分析
 # 指定用於相關係數分析的變數列表（與敘述性統計分析相同）
@@ -165,12 +168,12 @@ corr_variables = variables
 # 檢查欄位是否存在
 missing_cols = [col for col in corr_variables.keys() if col not in df.columns]
 if missing_cols:
-    print(f"\n警告：以下欄位在資料集中不存在: {missing_cols}")
+    print(f"\n警告：以下欄位在資料集中不存在：{missing_cols}")
     # 移除不存在的欄位
     for col in missing_cols:
         del corr_variables[col]
 
-# 創建一個新的DataFrame只包含我們需要的變數
+# 創建一個新的 DataFrame 只包含我們需要的變數
 corr_df = df[[col for col in corr_variables.keys()]].copy()
 
 # 為了方便後續處理，將欄位重命名為顯示名稱
@@ -204,16 +207,16 @@ def add_significance_stars(corr_df, p_value_df):
     
     return result_df
 
-# 計算P值矩陣
+# 計算 p value 矩陣
 p_values = pd.DataFrame(np.zeros_like(correlation_matrix), index=correlation_matrix.index, columns=correlation_matrix.columns)
 
-# 計算所有變數對之間的p值
+# 計算所有變數對之間的 p value
 n = len(corr_df)
 for i, var1 in enumerate(correlation_matrix.index):
     for j, var2 in enumerate(correlation_matrix.columns):
         if i != j:  # 跳過對角線
             r = correlation_matrix.loc[var1, var2]
-            # 使用t分布計算p值
+            # 使用 t 分布計算 p value
             t = r * np.sqrt((n - 2) / (1 - r**2))
             p = 2 * (1 - stats.t.cdf(abs(t), n - 2))
             p_values.loc[var1, var2] = p
@@ -222,9 +225,16 @@ for i, var1 in enumerate(correlation_matrix.index):
 styled_corr_matrix = add_significance_stars(correlation_matrix, p_values)
 
 # 顯示結果
-print("\n表格 4: 相關係數矩陣")
+print("\n表格 4：相關係數矩陣")
 print(styled_corr_matrix)
 
-# 將結果存儲為CSV檔案
-styled_corr_matrix.to_csv("Cindy/correlation_matrix_results.csv")
-print("\n相關係數矩陣已保存至 'Cindy/correlation_matrix_results.csv'")
+# 創建一個只包含下三角部分的矩陣
+lower_triangle = styled_corr_matrix.copy()
+for i in range(len(lower_triangle.index)):
+    for j in range(len(lower_triangle.columns)):
+        if j > i:  # 只清除右上三角 (不包含對角線)
+            lower_triangle.iloc[i, j] = np.nan
+
+# 將結果存儲為 CSV 檔案
+lower_triangle.to_csv("correlation_matrix_results.csv")
+print("\n相關係數矩陣已保存至 'correlation_matrix_results.csv'（僅包含對角線及左下三角部分）")
