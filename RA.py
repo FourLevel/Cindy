@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 import scipy.stats as stats
+import statsmodels.api as sm
 
 # 設置pandas顯示選項以確保所有內容都被顯示
 pd.set_option('display.width', 150)
@@ -10,8 +11,8 @@ pd.set_option('display.max_rows', None)
 
 
 ## 開始進行樣本分佈分析
-# 1. 匯入 "Aggr 2014-2023_Old.csv" 檔案，移除具有空值的列
-df = pd.read_csv("Aggr 2014-2023_Old.csv")
+# 1. 匯入檔案，移除具有空值的列
+df = pd.read_csv("Aggr 2014-2023_All New.csv")
 df.dropna(inplace=True)
 
 # 取得總樣本數
@@ -238,3 +239,173 @@ for i in range(len(lower_triangle.index)):
 # 將結果存儲為 CSV 檔案
 lower_triangle.to_csv("correlation_matrix_results.csv")
 print("\n相關係數矩陣已保存至 'correlation_matrix_results.csv'（僅包含對角線及左下三角部分）")
+
+
+## 開始進行線性迴歸分析
+# 檢查資料集中的所有欄位
+print("\n資料集中的所有欄位：")
+for col in sorted(df.columns.tolist()):
+    print(f"- {col}")
+
+# 檢查所需的變數是否存在
+required_vars = ['gap', 'gap_e', 'gap_s', 'family', 'gov', 'g', 'size', 'lev', 'roa', 'mtb', 'kz']
+missing_vars = [var for var in required_vars if var not in df.columns]
+if missing_vars:
+    print(f"\n警告：以下變數在資料集中不存在：{missing_vars}")
+    print("請確認這些變數的名稱是否正確，或者是否需要先計算這些變數。")
+else:
+    print("\n所有需要的變數都存在於資料集中。")
+
+# 如果所有變數都存在，則進行線性迴歸分析
+# without legal
+if not missing_vars:
+    # 定義三個模型的變數
+    models = {
+        "Model 1": {
+            "Y": "gap",
+            "X": ["family", "gov", "g", "size", "lev", "roa", "mtb", "kz"]
+        },
+        "Model 2": {
+            "Y": "gap_e",
+            "X": ["gap", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz"]
+        },
+        "Model 3": {
+            "Y": "gap_s",
+            "X": ["gap", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz"]
+        }
+    }
+    
+    # 整理成表格格式（每個變數兩列：一列係數+星號，一列t值）
+    var_order = [
+        "gap", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "_cons"
+    ]
+    var_display = {
+        "gap": "GAP",
+        "family": "Family",
+        "gov": "Gov",
+        "g": "G",
+        "size": "Size",
+        "lev": "Lev",
+        "roa": "ROA",
+        "mtb": "MTB",
+        "kz": "KZ",
+        "_cons": "_cons"
+    }
+    # 收集每個模型的結果
+    table_rows = []
+    for v in var_order:
+        coef_row = {"Variable": var_display[v]}
+        tval_row = {"Variable": ""}
+        for model_name, model_vars in models.items():
+            X = df[model_vars["X"]]
+            y = df[model_vars["Y"]]
+            X = sm.add_constant(X)
+            model = sm.OLS(y, X).fit()
+            if v == "_cons":
+                coef = model.params["const"]
+                tval = model.tvalues["const"]
+                pval = model.pvalues["const"]
+            else:
+                coef = model.params.get(v, np.nan)
+                tval = model.tvalues.get(v, np.nan)
+                pval = model.pvalues.get(v, np.nan)
+            stars = ""
+            if pval < 0.01:
+                stars = "***"
+            elif pval < 0.05:
+                stars = "**"
+            elif pval < 0.1:
+                stars = "*"
+            coef_row[model_name] = f"{coef:.4f}{stars}" if not np.isnan(coef) else ""
+            tval_row[model_name] = f"({tval:.2f})" if not np.isnan(tval) else ""
+        table_rows.append(coef_row)
+        table_rows.append(tval_row)
+    # adj. R-sq
+    adjr_row = {"Variable": "adj. R-sq"}
+    for model_name, model_vars in models.items():
+        X = df[model_vars["X"]]
+        y = df[model_vars["Y"]]
+        X = sm.add_constant(X)
+        model = sm.OLS(y, X).fit()
+        adjr_row[model_name] = f"{model.rsquared_adj:.3f}"
+    table_rows.append(adjr_row)
+    regression_table = pd.DataFrame(table_rows)
+    regression_table.to_csv("regression_table_without_legal.csv", index=False)
+    print("\n已輸出整理後的迴歸表格 regression_table_without_legal.csv（t值在係數下一列）。")
+
+# with legal
+if not missing_vars:
+    # 定義三個模型的變數
+    models = {
+        "Model 1": {
+            "Y": "gap",
+            "X": ["family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "legal"]
+        },
+        "Model 2": {
+            "Y": "gap_e",
+            "X": ["gap", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "legal"]
+        },
+        "Model 3": {
+            "Y": "gap_s",
+            "X": ["gap", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "legal"]
+        }
+    }
+    
+    # 整理成表格格式（每個變數兩列：一列係數+星號，一列t值）
+    var_order = [
+        "gap", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "legal", "_cons"
+    ]
+    var_display = {
+        "gap": "GAP",
+        "family": "Family",
+        "gov": "Gov",
+        "g": "G",
+        "size": "Size",
+        "lev": "Lev",
+        "roa": "ROA",
+        "mtb": "MTB",
+        "kz": "KZ",
+        "legal": "Legal",
+        "_cons": "_cons"
+    }
+    # 收集每個模型的結果
+    table_rows = []
+    for v in var_order:
+        coef_row = {"Variable": var_display[v]}
+        tval_row = {"Variable": ""}
+        for model_name, model_vars in models.items():
+            X = df[model_vars["X"]]
+            y = df[model_vars["Y"]]
+            X = sm.add_constant(X)
+            model = sm.OLS(y, X).fit()
+            if v == "_cons":
+                coef = model.params["const"]
+                tval = model.tvalues["const"]
+                pval = model.pvalues["const"]
+            else:
+                coef = model.params.get(v, np.nan)
+                tval = model.tvalues.get(v, np.nan)
+                pval = model.pvalues.get(v, np.nan)
+            stars = ""
+            if pval < 0.01:
+                stars = "***"
+            elif pval < 0.05:
+                stars = "**"
+            elif pval < 0.1:
+                stars = "*"
+            coef_row[model_name] = f"{coef:.4f}{stars}" if not np.isnan(coef) else ""
+            tval_row[model_name] = f"({tval:.2f})" if not np.isnan(tval) else ""
+        table_rows.append(coef_row)
+        table_rows.append(tval_row)
+    # adj. R-sq
+    adjr_row = {"Variable": "adj. R-sq"}
+    for model_name, model_vars in models.items():
+        X = df[model_vars["X"]]
+        y = df[model_vars["Y"]]
+        X = sm.add_constant(X)
+        model = sm.OLS(y, X).fit()
+        adjr_row[model_name] = f"{model.rsquared_adj:.3f}"
+    table_rows.append(adjr_row)
+    regression_table = pd.DataFrame(table_rows)
+    regression_table.to_csv("regression_table_with_legal.csv", index=False)
+    print("\n已輸出整理後的迴歸表格 regression_table_with_legal.csv（t值在係數下一列）。")
