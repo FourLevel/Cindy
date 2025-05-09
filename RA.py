@@ -3,6 +3,8 @@ import numpy as np
 import os
 import scipy.stats as stats
 import statsmodels.api as sm
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # 設置pandas顯示選項以確保所有內容都被顯示
 pd.set_option('display.width', 150)
@@ -124,6 +126,51 @@ variables = {
 print("\n資料集欄位列表：")
 for col in sorted(df.columns.tolist()):
     print(f"- {col}")
+
+# 繪製盒鬚圖
+plt.figure(figsize=(15, 10))
+for i, (col, display_name) in enumerate(variables.items(), 1):
+    if col in df.columns:
+        plt.subplot(3, 4, i)
+        sns.boxplot(y=df[col])
+        plt.title(f'Boxplot of {display_name}')
+        plt.ylabel('Value')
+        
+        # 計算異常值
+        Q1 = df[col].quantile(0.25)
+        Q3 = df[col].quantile(0.75)
+        IQR = Q3 - Q1
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+        
+        # 計算異常值數量
+        outliers = df[col][(df[col] < lower_bound) | (df[col] > upper_bound)]
+        outlier_count = len(outliers)
+        
+        # 在圖上顯示異常值數量
+        plt.text(0.05, 0.95, f'Outliers: {outlier_count}\n({outlier_count/len(df)*100:.1f}%)',
+                transform=plt.gca().transAxes,
+                verticalalignment='top',
+                bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+        
+plt.tight_layout()
+plt.show()
+plt.savefig('boxplots.png', dpi=300, bbox_inches='tight')
+plt.close()
+
+# 輸出異常值統計資訊
+print("\nOutlier Statistics for Each Variable:")
+for col, display_name in variables.items():
+    if col in df.columns:
+        Q1 = df[col].quantile(0.25)
+        Q3 = df[col].quantile(0.75)
+        IQR = Q3 - Q1
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+        outliers = df[col][(df[col] < lower_bound) | (df[col] > upper_bound)]
+        print(f"\n{display_name}:")
+        print(f"Number of outliers: {len(outliers)} ({len(outliers)/len(df)*100:.1f}%)")
+        print(f"Outlier range: < {lower_bound:.2f} or > {upper_bound:.2f}")
 
 # 建立結果資料框
 stats_results = []
