@@ -111,6 +111,8 @@ print("\n結果已保存至 'sample_distribution_results.csv'")
 # 指定需要分析的變數 (實際欄位名稱 -> 顯示名稱)
 variables = {
     'gap': 'GAP',
+    'gap_e': 'GAP_E',
+    'gap_s': 'GAP_S',
     'family': 'Family',
     'gov': 'Gov',
     'g': 'G',
@@ -126,6 +128,38 @@ variables = {
 print("\n資料集欄位列表：")
 for col in sorted(df.columns.tolist()):
     print(f"- {col}")
+
+# 定義需要進行 winsorization 的變數
+winsorize_vars = ['kz']
+
+# 創建需要處理的變數副本
+winsorized_df = df.copy()
+
+# 定義 winsorization 的上下限百分比
+lower_percentile = 0.01
+upper_percentile = 0.99
+
+# 只對指定變數進行 winsorization 處理
+for col in winsorize_vars:
+    if col in df.columns:
+        # 計算上下限值
+        lower_bound = df[col].quantile(lower_percentile)
+        upper_bound = df[col].quantile(upper_percentile)
+        
+        # 使用 scipy.stats 的 winsorize 函數進行處理
+        winsorized_values = stats.mstats.winsorize(df[col], limits=[lower_percentile, 1-upper_percentile])
+        
+        # 將處理後的值存入新的 DataFrame
+        winsorized_df[col] = winsorized_values
+        
+        print(f"變數 {variables[col]} 的 winsorization 處理結果：")
+        print(f"原始範圍：[{df[col].min():.4f}, {df[col].max():.4f}]")
+        print(f"處理後範圍：[{winsorized_df[col].min():.4f}, {winsorized_df[col].max():.4f}]")
+        print(f"上下限值：[{lower_bound:.4f}, {upper_bound:.4f}]")
+        print()
+
+# 使用 winsorized_df 替換原始 df 進行後續分析
+df = winsorized_df
 
 # 繪製盒鬚圖
 plt.figure(figsize=(15, 10))
@@ -289,14 +323,34 @@ print("\n相關係數矩陣已保存至 'correlation_matrix_results.csv'（僅�
 
 
 ## 開始進行線性迴歸分析
-# 檢查資料集中的所有欄位
-print("\n資料集中的所有欄位：")
-for col in sorted(df.columns.tolist()):
-    print(f"- {col}")
+# 在進行迴歸分析之前，創建 year 和 industry 的虛擬變數
+# 使用 pandas 的 get_dummies 函數創建虛擬變數
+
+# 在進行 get_dummies 之前，先檢查資料類型
+print("Year 欄位資料類型：", df['year'].dtype)
+print("ICB code 欄位資料類型：", df['icbcode'].dtype)
+
+# 確保資料類型正確，並移除小數點
+df['year'] = df['year'].astype(int)
+df['icbcode'] = df['icbcode'].astype(int)
+
+# 檢查是否有特殊值
+print("\nYear 欄位唯一值：", df['year'].unique())
+print("ICB code 欄位唯一值：", df['icbcode'].unique())
+
+# 然後再進行 get_dummies
+year_dummies = pd.get_dummies(df['year'], prefix='year', drop_first=True)
+industry_dummies = pd.get_dummies(df['icbcode'], prefix='industry', drop_first=True)
+
+# 將虛擬變數與原始數據合併
+df_with_dummies = pd.concat([df, year_dummies, industry_dummies], axis=1)
+
+# 更新 required_vars 以包含所有虛擬變數
+required_vars = ['gap', 'gap_e', 'gap_s', 'family', 'gov', 'g', 'size', 'lev', 'roa', 'mtb', 'kz'] + \
+                list(year_dummies.columns) + list(industry_dummies.columns)
 
 # 檢查所需的變數是否存在
-required_vars = ['gap', 'gap_e', 'gap_s', 'family', 'gov', 'g', 'size', 'lev', 'roa', 'mtb', 'kz']
-missing_vars = [var for var in required_vars if var not in df.columns]
+missing_vars = [var for var in required_vars if var not in df_with_dummies.columns]
 if missing_vars:
     print(f"\n警告：以下變數在資料集中不存在：{missing_vars}")
     print("請確認這些變數的名稱是否正確，或者是否需要先計算這些變數。")
@@ -306,28 +360,60 @@ else:
 # 如果所有變數都存在，則進行線性迴歸分析
 # without legal
 if not missing_vars:
+    # 檢查數據類型
+    print("\n檢查數據類型：")
+    for var in ["gap", "gap_e", "gap_s", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz"]:
+        print(f"{var}: {df_with_dummies[var].dtype}")
+        # 檢查是否有非數值型數據
+        non_numeric = df_with_dummies[var].apply(lambda x: not isinstance(x, (int, float, np.number)))
+        if non_numeric.any():
+            print(f"警告：{var} 包含非數值型數據")
+            print(df_with_dummies[var][non_numeric].head())
+    
+    # 確保所有變數都是數值型
+    for var in ["gap", "gap_e", "gap_s", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz"]:
+        df_with_dummies[var] = pd.to_numeric(df_with_dummies[var], errors='coerce')
+    
+    # 檢查並處理虛擬變數
+    for col in year_dummies.columns:
+        df_with_dummies[col] = df_with_dummies[col].astype(float)
+    for col in industry_dummies.columns:
+        df_with_dummies[col] = df_with_dummies[col].astype(float)
+    
+    # 檢查是否有任何 NaN 值
+    nan_check = df_with_dummies[["gap", "gap_e", "gap_s", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz"]].isna().sum()
+    print("\nNaN 值檢查：")
+    print(nan_check)
+    
+    # 移除包含 NaN 的行
+    df_with_dummies = df_with_dummies.dropna(subset=["gap", "gap_e", "gap_s", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz"])
+    print(f"\n移除 NaN 後的樣本數：{len(df_with_dummies)}")
+    
     # 定義三個模型的變數
     models = {
         "Model 1": {
             "Y": "gap",
-            "X": ["family", "gov", "g", "size", "lev", "roa", "mtb", "kz"]
+            "X": ["family", "gov", "g", "size", "lev", "roa", "mtb", "kz"] + \
+                 list(year_dummies.columns) + list(industry_dummies.columns)
         },
         "Model 2": {
             "Y": "gap_e",
-            "X": ["gap", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz"]
+            "X": ["family", "gov", "g", "size", "lev", "roa", "mtb", "kz"] + \
+                 list(year_dummies.columns) + list(industry_dummies.columns)
         },
         "Model 3": {
             "Y": "gap_s",
-            "X": ["gap", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz"]
+            "X": ["family", "gov", "g", "size", "lev", "roa", "mtb", "kz"] + \
+                 list(year_dummies.columns) + list(industry_dummies.columns)
         }
     }
     
     # 整理成表格格式（每個變數兩列：一列係數+星號，一列t值）
     var_order = [
-        "gap", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "_cons"
-    ]
+        "family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "_cons"
+    ] + list(year_dummies.columns) + list(industry_dummies.columns)
+    
     var_display = {
-        "gap": "GAP",
         "family": "Family",
         "gov": "Gov",
         "g": "G",
@@ -338,14 +424,20 @@ if not missing_vars:
         "kz": "KZ",
         "_cons": "_cons"
     }
+    # 為虛擬變數添加顯示名稱
+    for col in year_dummies.columns:
+        var_display[col] = col
+    for col in industry_dummies.columns:
+        var_display[col] = col
+    
     # 收集每個模型的結果
     table_rows = []
     for v in var_order:
         coef_row = {"Variable": var_display[v]}
         tval_row = {"Variable": ""}
         for model_name, model_vars in models.items():
-            X = df[model_vars["X"]]
-            y = df[model_vars["Y"]]
+            X = df_with_dummies[model_vars["X"]]
+            y = df_with_dummies[model_vars["Y"]]
             X = sm.add_constant(X)
             model = sm.OLS(y, X).fit()
             if v == "_cons":
@@ -370,8 +462,8 @@ if not missing_vars:
     # adj. R-sq
     adjr_row = {"Variable": "adj. R-sq"}
     for model_name, model_vars in models.items():
-        X = df[model_vars["X"]]
-        y = df[model_vars["Y"]]
+        X = df_with_dummies[model_vars["X"]]
+        y = df_with_dummies[model_vars["Y"]]
         X = sm.add_constant(X)
         model = sm.OLS(y, X).fit()
         adjr_row[model_name] = f"{model.rsquared_adj:.3f}"
@@ -386,24 +478,27 @@ if not missing_vars:
     models = {
         "Model 1": {
             "Y": "gap",
-            "X": ["family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "legal"]
+            "X": ["family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "legal"] + \
+                 list(year_dummies.columns) + list(industry_dummies.columns)
         },
         "Model 2": {
             "Y": "gap_e",
-            "X": ["gap", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "legal"]
+            "X": ["family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "legal"] + \
+                 list(year_dummies.columns) + list(industry_dummies.columns)
         },
         "Model 3": {
             "Y": "gap_s",
-            "X": ["gap", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "legal"]
+            "X": ["family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "legal"] + \
+                 list(year_dummies.columns) + list(industry_dummies.columns)
         }
     }
     
     # 整理成表格格式（每個變數兩列：一列係數+星號，一列t值）
     var_order = [
-        "gap", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "legal", "_cons"
-    ]
+        "family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "legal", "_cons"
+    ] + list(year_dummies.columns) + list(industry_dummies.columns)
+    
     var_display = {
-        "gap": "GAP",
         "family": "Family",
         "gov": "Gov",
         "g": "G",
@@ -415,14 +510,20 @@ if not missing_vars:
         "legal": "Legal",
         "_cons": "_cons"
     }
+    # 為虛擬變數添加顯示名稱
+    for col in year_dummies.columns:
+        var_display[col] = col
+    for col in industry_dummies.columns:
+        var_display[col] = col
+    
     # 收集每個模型的結果
     table_rows = []
     for v in var_order:
         coef_row = {"Variable": var_display[v]}
         tval_row = {"Variable": ""}
         for model_name, model_vars in models.items():
-            X = df[model_vars["X"]]
-            y = df[model_vars["Y"]]
+            X = df_with_dummies[model_vars["X"]]
+            y = df_with_dummies[model_vars["Y"]]
             X = sm.add_constant(X)
             model = sm.OLS(y, X).fit()
             if v == "_cons":
@@ -447,8 +548,8 @@ if not missing_vars:
     # adj. R-sq
     adjr_row = {"Variable": "adj. R-sq"}
     for model_name, model_vars in models.items():
-        X = df[model_vars["X"]]
-        y = df[model_vars["Y"]]
+        X = df_with_dummies[model_vars["X"]]
+        y = df_with_dummies[model_vars["Y"]]
         X = sm.add_constant(X)
         model = sm.OLS(y, X).fit()
         adjr_row[model_name] = f"{model.rsquared_adj:.3f}"
