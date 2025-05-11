@@ -107,7 +107,7 @@ def try_logistic_regression_combinations(X, y):
     successful_combinations = []
     
     # 嘗試所有可能的特徵組合（從5個特徵到所有特徵）
-    for r in range(10, len(features) + 1):
+    for r in range(5, len(features) + 1):
         for combo in combinations(features, r):
             try:
                 # 選擇當前組合的特徵
@@ -118,7 +118,7 @@ def try_logistic_regression_combinations(X, y):
                 
                 # 進行羅吉斯迴歸
                 model = sm.Logit(y, X_subset)
-                results = model.fit(maxiter=100)  # 增加最大迭代次數
+                results = model.fit(maxiter=35)  # 增加最大迭代次數
                 
                 # 檢查是否達到最大迭代次數
                 if results.mle_retvals['warnflag'] == 1:
@@ -204,4 +204,3 @@ if successful_models:
         print(f"{var:<30}{coef:<15.4f}{pval:<15.4f}")
 else:
     print("\n沒有找到成功的模型組合")
-
