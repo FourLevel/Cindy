@@ -1,14 +1,24 @@
 import pandas as pd
-import seaborn as sns
+import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import (
+    classification_report,
+    confusion_matrix,
+    precision_score,
+    recall_score,
+    f1_score,
+    accuracy_score,
+    roc_curve,
+    auc
+)
 import statsmodels.api as sm
-import numpy as np
 from scipy import stats
 from itertools import combinations
+
 
 # 讀取 CSV 檔案
 df = pd.read_csv('航空公司量化資料.csv')
@@ -89,7 +99,7 @@ else:
     print("\n沒有相關係數絕對值大於 0.7 的變數組合")
 
 # 繪製相關係數矩陣熱圖
-plt.figure(figsize=(16, 16))
+plt.figure(figsize=(16, 16), dpi=120)
 sns.heatmap(correlation_matrix, 
             annot=True,  # 顯示數值
             cmap='coolwarm',  # 使用藍紅配色
@@ -123,6 +133,12 @@ def try_logistic_regression_combinations(X, y):
                 # 檢查是否達到最大迭代次數
                 if results.mle_retvals['warnflag'] == 1:
                     print(f"組合 {combo} 達到最大迭代次數，已排除")
+                    continue
+                
+                # 檢查 p-values 是否包含 1 或 nan
+                pvalues = results.pvalues
+                if any(pd.isna(pvalues)) or any(pvalues == 1):
+                    print(f"組合 {combo} 包含無效的 p-value，已排除")
                     continue
                 
                 # 如果成功運行，記錄這個組合
@@ -204,3 +220,87 @@ if successful_models:
         print(f"{var:<30}{coef:<15.4f}{pval:<15.4f}")
 else:
     print("\n沒有找到成功的模型組合")
+
+## 找到最佳模型
+# 選擇 ROA, ROE, debt_equity_ratio, global_influence, financial_crisis, political_factors, industry_competition, internal_system, poor_management, safety_incidents 作為模型變數
+model_1_X = df[['ROA', 'ROE', 'debt_equity_ratio', 'global_influence', 'financial_crisis', 
+                'political_factors', 'industry_competition', 'internal_system', 
+                'poor_management', 'safety_incidents']]
+
+# 將數值型變數標準化
+numeric_columns = ['ROA', 'ROE', 'debt_equity_ratio', 'global_influence', 'financial_crisis', 
+                  'political_factors', 'industry_competition', 'internal_system', 
+                  'poor_management', 'safety_incidents']
+scaler = StandardScaler()
+model_1_X[numeric_columns] = scaler.fit_transform(model_1_X[numeric_columns])
+
+# 添加常數項
+model_1_X = sm.add_constant(model_1_X)
+
+model_1_y = df['bankruptcy_status']
+
+# 進行羅吉斯迴歸，使用 statsmodels 進行迴歸分析
+model_1 = sm.Logit(model_1_y, model_1_X)
+results = model_1.fit(maxiter=35)
+
+# 顯示模型摘要
+print("\n模型摘要：")
+print(results.summary())
+
+# 進行預測
+pred_proba = results.predict(model_1_X)
+
+# 將機率值轉換為二元預測（使用 0.5 作為閾值）
+pred = (pred_proba > 0.5).astype(int)
+
+# 計算 ROC 曲線
+fpr, tpr, thresholds = roc_curve(model_1_y, pred_proba)
+roc_auc = auc(fpr, tpr)
+
+# 繪製 ROC 曲線
+plt.figure(figsize=(10, 8), dpi=120)
+plt.plot(fpr, tpr, color='darkorange', lw=2, 
+         label=f'ROC curve (area = {roc_auc:.2f})')
+plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver Operating Characteristic (ROC) Curve')
+plt.legend(loc='lower right')
+plt.tight_layout()
+plt.show()
+
+# 計算混淆矩陣
+conf_matrix = confusion_matrix(model_1_y, pred)
+print("\n混淆矩陣：")
+print(conf_matrix)
+
+# 繪製混淆矩陣熱圖
+plt.figure(figsize=(7, 6), dpi=400)
+sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', cbar=False)
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.title('Confusion Matrix')
+plt.tight_layout()
+plt.show()
+
+# 計算評估指標
+accuracy = accuracy_score(model_1_y, pred)
+precision = precision_score(model_1_y, pred)
+recall = recall_score(model_1_y, pred)
+f1 = f1_score(model_1_y, pred)
+
+# 顯示評估指標
+print("\n模型評估指標：")
+print(f" Accuracy: {accuracy:.4f}")
+print(f"Precision: {precision:.4f}")
+print(f"   Recall: {recall:.4f}")
+print(f" F1 score: {f1:.4f}")
+
+# 使用公式解釋評估指標
+print("\n評估指標說明：")
+print(" Accuracy: 正確預測的數量 / 總預測數量")
+print("Precision: 正確預測為正的數量 / 預測為正的數量")
+print("   Recall: 正確預測為正的數量 / 實際為正的數量")
+print(" F1 score: 2 * (Precision * Recall) / (Precision + Recall)")
