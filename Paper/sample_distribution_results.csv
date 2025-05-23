@@ -1,44 +1,44 @@
 Category,Obs.
-Full sample,7981.0
+Full sample,8300.0
 Across countries,
-Japan,3331.0
-Taiwan,1029.0
-Hong Kong,971.0
-South Korea,866.0
-Thailand,481.0
-Malaysia,443.0
-Singapore,382.0
-Indonesia,294.0
-Philippines,184.0
+Japan,3452.0
+Taiwan,1087.0
+Hong Kong,1026.0
+South Korea,917.0
+Thailand,527.0
+Malaysia,420.0
+Singapore,366.0
+Indonesia,317.0
+Philippines,188.0
 Across industries,
-Industrial Goods and Services,1373.0
-Technology,973.0
-Real Estate,727.0
-"Food, Beverage and Tobacco",535.0
-Chemical ,407.0
-Consumer Products and Services,400.0
-Utilities,390.0
-Health Care,373.0
-Construction and Materials,367.0
-Automobiles and Parts,344.0
-Basic Resources,336.0
-Telecommunications,299.0
-Energy,293.0
-Retail,272.0
-Travel and Leisure,248.0
-Financial Services,216.0
-Imsurance,156.0
-"Personal Care, Drug and Grocery Stores",113.0
-Media,87.0
-Other,67.0
+Automobiles and Parts,349.0
 Banks,5.0
+Basic Resources,358.0
+Chemical ,421.0
+Construction and Materials,375.0
+Consumer Products and Services,430.0
+Energy,296.0
+Financial Services,231.0
+"Food, Beverage and Tobacco",561.0
+Health Care,406.0
+Imsurance,162.0
+Industrial Goods and Services,1391.0
+Media,88.0
+"Personal Care, Drug and Grocery Stores",126.0
+Real Estate,749.0
+Retail,298.0
+Technology,1029.0
+Telecommunications,319.0
+Travel and Leisure,244.0
+Utilities,392.0
+Other,70.0
 Across years,
-2015.0,736.0
-2016.0,771.0
-2017.0,815.0
-2018.0,955.0
-2019.0,984.0
-2020.0,982.0
-2021.0,994.0
-2022.0,990.0
-2023.0,754.0
+2015.0,905.0
+2016.0,914.0
+2017.0,921.0
+2018.0,934.0
+2019.0,963.0
+2020.0,967.0
+2021.0,980.0
+2022.0,976.0
+2023.0,740.0

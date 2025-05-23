@@ -57,6 +57,23 @@ industry_mapping = dict(zip(icb_df['ICB code'], icb_df['Industry']))
 df['industry_name'] = df['icbcode'].map(industry_mapping)
 industry_counts = df['industry_name'].value_counts()
 
+# 按照A-Z排序，但將"Other"放在最後
+def sort_industries(industry_counts):
+    # 將產業名稱按A-Z排序
+    sorted_industries = sorted(industry_counts.index)
+    
+    # 如果有"Other"，將它移到最後
+    if "Other" in sorted_industries:
+        sorted_industries.remove("Other")
+        sorted_industries.append("Other")
+    
+    # 根據排序後的順序重新整理industry_counts
+    sorted_counts = pd.Series([industry_counts[industry] for industry in sorted_industries], 
+                             index=sorted_industries)
+    return sorted_counts
+
+industry_counts = sort_industries(industry_counts)
+
 print("\n各產業分佈：")
 for industry, count in industry_counts.items():
     print(f"{industry}: {count}")
@@ -121,7 +138,9 @@ variables = {
     'roa': 'ROA',
     'mtb': 'MTB',
     'kz': 'KZ',
-    'legal': 'Legal'
+    'boardSize': 'Board Size',
+    'CEOdual': 'CEO Duality',
+    'CSRcmte': 'CSR Committee',
 }
 
 # 檢查是否有缺失欄位
@@ -162,10 +181,10 @@ for col in winsorize_vars:
 df = winsorized_df
 
 # 繪製盒鬚圖
-plt.figure(figsize=(15, 10))
+plt.figure(figsize=(16, 12))
 for i, (col, display_name) in enumerate(variables.items(), 1):
     if col in df.columns:
-        plt.subplot(3, 4, i)
+        plt.subplot(4, 4, i)
         sns.boxplot(y=df[col])
         plt.title(f'Boxplot of {display_name}')
         plt.ylabel('Value')
@@ -345,8 +364,12 @@ industry_dummies = pd.get_dummies(df['icbcode'], prefix='industry', drop_first=T
 # 將虛擬變數與原始數據合併
 df_with_dummies = pd.concat([df, year_dummies, industry_dummies], axis=1)
 
-# 更新 required_vars 以包含所有虛擬變數
-required_vars = ['gap', 'gap_e', 'gap_s', 'family', 'gov', 'g', 'size', 'lev', 'roa', 'mtb', 'kz'] + \
+# 計算交互項
+df_with_dummies['g_family'] = df_with_dummies['g'] * df_with_dummies['family']
+df_with_dummies['g_gov'] = df_with_dummies['g'] * df_with_dummies['gov']
+
+# 更新 required_vars 以包含所有虛擬變數和交互項
+required_vars = ['gap', 'gap_e', 'gap_s', 'family', 'gov', 'g', 'size', 'lev', 'roa', 'mtb', 'kz', 'boardSize', 'CEOdual', 'CSRcmte', 'g_family', 'g_gov'] + \
                 list(year_dummies.columns) + list(industry_dummies.columns)
 
 # 檢查所需的變數是否存在
@@ -358,11 +381,10 @@ else:
     print("\n所有需要的變數都存在於資料集中。")
 
 # 如果所有變數都存在，則進行線性迴歸分析
-# without legal
 if not missing_vars:
     # 檢查數據類型
     print("\n檢查數據類型：")
-    for var in ["gap", "gap_e", "gap_s", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz"]:
+    for var in ["gap", "gap_e", "gap_s", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_family", "g_gov"]:
         print(f"{var}: {df_with_dummies[var].dtype}")
         # 檢查是否有非數值型數據
         non_numeric = df_with_dummies[var].apply(lambda x: not isinstance(x, (int, float, np.number)))
@@ -371,7 +393,7 @@ if not missing_vars:
             print(df_with_dummies[var][non_numeric].head())
     
     # 確保所有變數都是數值型
-    for var in ["gap", "gap_e", "gap_s", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz"]:
+    for var in ["gap", "gap_e", "gap_s", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_family", "g_gov"]:
         df_with_dummies[var] = pd.to_numeric(df_with_dummies[var], errors='coerce')
     
     # 檢查並處理虛擬變數
@@ -381,36 +403,36 @@ if not missing_vars:
         df_with_dummies[col] = df_with_dummies[col].astype(float)
     
     # 檢查是否有任何 NaN 值
-    nan_check = df_with_dummies[["gap", "gap_e", "gap_s", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz"]].isna().sum()
+    nan_check = df_with_dummies[["gap", "gap_e", "gap_s", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_family", "g_gov"]].isna().sum()
     print("\nNaN 值檢查：")
     print(nan_check)
     
     # 移除包含 NaN 的行
-    df_with_dummies = df_with_dummies.dropna(subset=["gap", "gap_e", "gap_s", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz"])
+    df_with_dummies = df_with_dummies.dropna(subset=["gap", "gap_e", "gap_s", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_family", "g_gov"])
     print(f"\n移除 NaN 後的樣本數：{len(df_with_dummies)}")
     
     # 定義三個模型的變數
     models = {
         "Model 1": {
             "Y": "gap",
-            "X": ["family", "gov", "g", "size", "lev", "roa", "mtb", "kz"] + \
+            "X": ["family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_family", "g_gov"] + \
                  list(year_dummies.columns) + list(industry_dummies.columns)
         },
         "Model 2": {
             "Y": "gap_e",
-            "X": ["family", "gov", "g", "size", "lev", "roa", "mtb", "kz"] + \
+            "X": ["family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_family", "g_gov"] + \
                  list(year_dummies.columns) + list(industry_dummies.columns)
         },
         "Model 3": {
             "Y": "gap_s",
-            "X": ["family", "gov", "g", "size", "lev", "roa", "mtb", "kz"] + \
+            "X": ["family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_family", "g_gov"] + \
                  list(year_dummies.columns) + list(industry_dummies.columns)
         }
     }
     
     # 整理成表格格式（每個變數兩列：一列係數+星號，一列t值）
     var_order = [
-        "family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "_cons"
+        "family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_family", "g_gov", "_cons"
     ] + list(year_dummies.columns) + list(industry_dummies.columns)
     
     var_display = {
@@ -422,6 +444,11 @@ if not missing_vars:
         "roa": "ROA",
         "mtb": "MTB",
         "kz": "KZ",
+        "boardSize": "Board Size",
+        "CEOdual": "CEO Duality",
+        "CSRcmte": "CSR Committee",
+        "g_family": "G*Family",
+        "g_gov": "G*Gov",
         "_cons": "_cons"
     }
     # 為虛擬變數添加顯示名稱
@@ -469,91 +496,227 @@ if not missing_vars:
         adjr_row[model_name] = f"{model.rsquared_adj:.3f}"
     table_rows.append(adjr_row)
     regression_table = pd.DataFrame(table_rows)
-    regression_table.to_csv("regression_table_without_legal.csv", index=False)
-    print("\n已輸出整理後的迴歸表格 regression_table_without_legal.csv（t值在係數下一列）。")
+    regression_table.to_csv("regression_table.csv", index=False)
+    print("\n已輸出整理後的迴歸表格 regression_table.csv（t值在係數下一列）。")
 
-# with legal
-if not missing_vars:
-    # 定義三個模型的變數
-    models = {
-        "Model 1": {
-            "Y": "gap",
-            "X": ["family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "legal"] + \
-                 list(year_dummies.columns) + list(industry_dummies.columns)
-        },
-        "Model 2": {
-            "Y": "gap_e",
-            "X": ["family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "legal"] + \
-                 list(year_dummies.columns) + list(industry_dummies.columns)
-        },
-        "Model 3": {
-            "Y": "gap_s",
-            "X": ["family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "legal"] + \
-                 list(year_dummies.columns) + list(industry_dummies.columns)
+
+## 進行 2SLS 迴歸分析
+# 檢查工具變數是否存在
+iv_vars = ['freeFloatShareholding', 'insiderShareholding']
+
+print("\n檢查工具變數存在性：")
+for var in iv_vars:
+    if var in df_with_dummies.columns:
+        print(f"{var} 存在")
+    else:
+        print(f"{var} 不存在")
+
+missing_iv = [var for var in iv_vars if var not in df_with_dummies.columns]
+
+if missing_iv:
+    print(f"\n警告：以下工具變數在資料集中不存在：{missing_iv}")
+    print("請確認工具變數的欄位名稱是否正確。")
+else:
+    print("\n工具變數檢查通過，開始進行2SLS分析...")
+    
+    # 確保工具變數為數值型
+    for var in iv_vars:
+        df_with_dummies[var] = pd.to_numeric(df_with_dummies[var], errors='coerce')
+    
+    # 移除包含NaN的行
+    required_vars_2sls = iv_vars + ["gap", "gap_e", "gap_s", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_family", "g_gov"]
+    df_2sls = df_with_dummies.dropna(subset=required_vars_2sls)
+    print(f"2SLS分析樣本數：{len(df_2sls)}")
+    
+    try:
+        # 導入2SLS所需的套件
+        from linearmodels import IV2SLS
+        import numpy as np
+        
+        # 重新計算交互項（因為可能有資料被移除）
+        df_2sls['g_family'] = df_2sls['g'] * df_2sls['family']
+        df_2sls['g_gov'] = df_2sls['g'] * df_2sls['gov']
+        
+        # 定義基本控制變數
+        base_controls = ["gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_family", "g_gov"] + \
+                       list(year_dummies.columns) + list(industry_dummies.columns)
+        
+        # 定義三個2SLS模型（按照原始模型分類）
+        models_2sls = {
+            "Model 1": "gap",
+            "Model 2": "gap_e", 
+            "Model 3": "gap_s"
         }
-    }
-    
-    # 整理成表格格式（每個變數兩列：一列係數+星號，一列t值）
-    var_order = [
-        "family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "legal", "_cons"
-    ] + list(year_dummies.columns) + list(industry_dummies.columns)
-    
-    var_display = {
-        "family": "Family",
-        "gov": "Gov",
-        "g": "G",
-        "size": "Size",
-        "lev": "Lev",
-        "roa": "ROA",
-        "mtb": "MTB",
-        "kz": "KZ",
-        "legal": "Legal",
-        "_cons": "_cons"
-    }
-    # 為虛擬變數添加顯示名稱
-    for col in year_dummies.columns:
-        var_display[col] = col
-    for col in industry_dummies.columns:
-        var_display[col] = col
-    
-    # 收集每個模型的結果
-    table_rows = []
-    for v in var_order:
-        coef_row = {"Variable": var_display[v]}
-        tval_row = {"Variable": ""}
-        for model_name, model_vars in models.items():
-            X = df_with_dummies[model_vars["X"]]
-            y = df_with_dummies[model_vars["Y"]]
-            X = sm.add_constant(X)
-            model = sm.OLS(y, X).fit()
-            if v == "_cons":
-                coef = model.params["const"]
-                tval = model.tvalues["const"]
-                pval = model.pvalues["const"]
+        
+        # 定義內生變數
+        endog_vars = ['family']  # family 為內生的
+        
+        # 創建結果表格
+        table_2sls_results = []
+        
+        # 定義變數顯示順序和名稱
+        main_vars = ["family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_family", "g_gov"]
+        
+        var_display = {
+            "family": "Family",
+            "gov": "Gov",
+            "g": "G",
+            "size": "Size",
+            "lev": "Lev",
+            "roa": "ROA",
+            "mtb": "MTB",
+            "kz": "KZ",
+            "boardSize": "Board Size",
+            "CEOdual": "CEO Duality",
+            "CSRcmte": "CSR Committee",
+            "g_family": "G*Family",
+            "g_gov": "G*Gov",
+            "freeFloatShareholding": "Free float (IV1)",
+            "insiderShareholding": "Insider (IV2)"
+        }
+        
+        # 第一階段迴歸（Family作為依變數）
+        print("\n=== 第一階段迴歸 (Family as dependent variable) ===")
+        # 由於只有family是內生的，所有base_controls都可以包含在第一階段迴歸中
+        first_stage_controls = base_controls
+        first_stage_X = df_2sls[first_stage_controls + iv_vars]
+        first_stage_X = sm.add_constant(first_stage_X)
+        first_stage_y = df_2sls['family']
+        first_stage_model = sm.OLS(first_stage_y, first_stage_X).fit(cov_type='HC1')
+        
+        # 第二階段迴歸（分別對三個依變數）
+        second_stage_models = {}
+        for model_name, dep_var in models_2sls.items():
+            print(f"\n=== {model_name}: {dep_var} ===")
+            
+            # 外生變數（包含所有base_controls，因為只有family是內生的）
+            exog_vars_list = base_controls
+            
+            y = df_2sls[dep_var]
+            exog = df_2sls[exog_vars_list]
+            exog = sm.add_constant(exog)  # 加入常數項
+            endog = df_2sls[endog_vars]
+            instruments = df_2sls[iv_vars]
+            
+            second_stage_models[model_name] = IV2SLS(y, exog, endog, instruments).fit(cov_type='robust')
+        
+        # 建立表格
+        def get_coef_info(model, var_name):
+            if var_name in model.params.index:
+                coef = model.params[var_name]
+                if hasattr(model, 'tstats'):
+                    tstat = model.tstats[var_name]
+                    pval = model.pvalues[var_name]
+                else:
+                    tstat = model.tvalues[var_name]
+                    pval = model.pvalues[var_name]
+                
+                stars = ""
+                if pval < 0.01:
+                    stars = "***"
+                elif pval < 0.05:
+                    stars = "**"
+                elif pval < 0.1:
+                    stars = "*"
+                
+                return f"{coef:.4f}{stars}", f"({tstat:.2f})"
             else:
-                coef = model.params.get(v, np.nan)
-                tval = model.tvalues.get(v, np.nan)
-                pval = model.pvalues.get(v, np.nan)
-            stars = ""
-            if pval < 0.01:
-                stars = "***"
-            elif pval < 0.05:
-                stars = "**"
-            elif pval < 0.1:
-                stars = "*"
-            coef_row[model_name] = f"{coef:.4f}{stars}" if not np.isnan(coef) else ""
-            tval_row[model_name] = f"({tval:.2f})" if not np.isnan(tval) else ""
-        table_rows.append(coef_row)
-        table_rows.append(tval_row)
-    # adj. R-sq
-    adjr_row = {"Variable": "adj. R-sq"}
-    for model_name, model_vars in models.items():
-        X = df_with_dummies[model_vars["X"]]
-        y = df_with_dummies[model_vars["Y"]]
-        X = sm.add_constant(X)
-        model = sm.OLS(y, X).fit()
-        adjr_row[model_name] = f"{model.rsquared_adj:.3f}"
-    table_rows.append(adjr_row)
-    regression_table = pd.DataFrame(table_rows)
-    regression_table.to_csv("regression_table_with_legal.csv", index=False)
-    print("\n已輸出整理後的迴歸表格 regression_table_with_legal.csv（t值在係數下一列）。")
+                return "", ""
+        
+        # 組織表格數據
+        for var in main_vars + iv_vars:
+            if var in var_display:
+                var_name = var_display[var]
+                
+                # 第一階段結果
+                if var in endog_vars:
+                    first_stage_coef, first_stage_t = "", ""
+                else:
+                    first_stage_coef, first_stage_t = get_coef_info(first_stage_model, var)
+                
+                # 第二階段結果
+                model1_coef, model1_t = get_coef_info(second_stage_models["Model 1"], var)
+                model2_coef, model2_t = get_coef_info(second_stage_models["Model 2"], var)
+                model3_coef, model3_t = get_coef_info(second_stage_models["Model 3"], var)
+                
+                # 添加係數行
+                table_2sls_results.append({
+                    "Variable": var_name,
+                    "First Stage": first_stage_coef,
+                    "Model 1": model1_coef,
+                    "Model 2": model2_coef,
+                    "Model 3": model3_coef
+                })
+                
+                # 添加t值行
+                table_2sls_results.append({
+                    "Variable": "",
+                    "First Stage": first_stage_t,
+                    "Model 1": model1_t,
+                    "Model 2": model2_t,
+                    "Model 3": model3_t
+                })
+        
+        # 添加控制變數和統計量
+        table_2sls_results.extend([
+            {"Variable": "Year", "First Stage": "Y", "Model 1": "Y", "Model 2": "Y", "Model 3": "Y"},
+            {"Variable": "Industry", "First Stage": "Y", "Model 1": "Y", "Model 2": "Y", "Model 3": "Y"}
+        ])
+        
+        # 常數項
+        const_first, const_first_t = get_coef_info(first_stage_model, "const")
+        const_1, const_1_t = get_coef_info(second_stage_models["Model 1"], "const")
+        const_2, const_2_t = get_coef_info(second_stage_models["Model 2"], "const")
+        const_3, const_3_t = get_coef_info(second_stage_models["Model 3"], "const")
+        
+        table_2sls_results.extend([
+            {"Variable": "_cons", "First Stage": const_first, "Model 1": const_1, "Model 2": const_2, "Model 3": const_3},
+            {"Variable": "", "First Stage": const_first_t, "Model 1": const_1_t, "Model 2": const_2_t, "Model 3": const_3_t}
+        ])
+        
+        # 模型統計量
+        table_2sls_results.extend([
+            {
+                "Variable": "N",
+                "First Stage": f"{first_stage_model.nobs}",
+                "Model 1": f"{second_stage_models['Model 1'].nobs}",
+                "Model 2": f"{second_stage_models['Model 2'].nobs}",
+                "Model 3": f"{second_stage_models['Model 3'].nobs}"
+            },
+            {
+                "Variable": "R-sq",
+                "First Stage": f"{first_stage_model.rsquared:.3f}",
+                "Model 1": f"{second_stage_models['Model 1'].rsquared:.3f}",
+                "Model 2": f"{second_stage_models['Model 2'].rsquared:.3f}",
+                "Model 3": f"{second_stage_models['Model 3'].rsquared:.3f}"
+            }
+        ])
+        
+        # 儲存結果
+        df_results_2sls = pd.DataFrame(table_2sls_results)
+        df_results_2sls.to_csv("iv_2sls_results_table.csv", index=False)
+        print("\n已輸出2SLS分析結果表格：iv_2sls_results_table.csv")
+        
+        # 顯示第一階段F統計量
+        print(f"\n第一階段 F-statistic: {first_stage_model.fvalue:.2f}")
+        
+        # 顯示工具變數相關係數
+        print("\n工具變數係數:")
+        for iv in iv_vars:
+            if iv in first_stage_model.params.index:
+                coef = first_stage_model.params[iv]
+                pval = first_stage_model.pvalues[iv]
+                stars = ""
+                if pval < 0.01:
+                    stars = "***"
+                elif pval < 0.05:
+                    stars = "**"
+                elif pval < 0.1:
+                    stars = "*"
+                print(f"{iv}: {coef:.4f}{stars}")
+        
+    except ImportError:
+        print("\n錯誤：需要安裝 linearmodels 套件來進行2SLS分析")
+        print("請執行：pip install linearmodels")
+    except Exception as e:
+        print(f"\n2SLS分析過程中發生錯誤：{str(e)}")
