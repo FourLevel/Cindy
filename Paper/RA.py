@@ -500,6 +500,106 @@ if not missing_vars:
     print("\n已輸出整理後的迴歸表格 regression_table.csv（t值在係數下一列）。")
 
 
+## 線性迴歸分析（沒有交互項版本）
+print("\n" + "="*60)
+print("OLS線性迴歸分析 - 沒有交互項版本")
+print("="*60)
+
+# 定義三個模型的變數（無交互項）
+models_no_interaction = {
+    "Model 1": {
+        "Y": "gap",
+        "X": ["family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte"] + \
+             list(year_dummies.columns) + list(industry_dummies.columns)
+    },
+    "Model 2": {
+        "Y": "gap_e",
+        "X": ["family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte"] + \
+             list(year_dummies.columns) + list(industry_dummies.columns)
+    },
+    "Model 3": {
+        "Y": "gap_s",
+        "X": ["family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte"] + \
+             list(year_dummies.columns) + list(industry_dummies.columns)
+    }
+}
+
+# 整理成表格格式（無交互項）
+var_order_no_interaction = [
+    "family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "_cons"
+] + list(year_dummies.columns) + list(industry_dummies.columns)
+
+var_display_no_interaction = {
+    "family": "Family",
+    "gov": "Gov",
+    "g": "G",
+    "size": "Size",
+    "lev": "Lev",
+    "roa": "ROA",
+    "mtb": "MTB",
+    "kz": "KZ",
+    "boardSize": "Board Size",
+    "CEOdual": "CEO Duality",
+    "CSRcmte": "CSR Committee",
+    "_cons": "_cons"
+}
+# 為虛擬變數添加顯示名稱（無交互項）
+for col in year_dummies.columns:
+    var_display_no_interaction[col] = col
+for col in industry_dummies.columns:
+    var_display_no_interaction[col] = col
+
+# 收集每個模型的結果（無交互項）
+table_rows_no_interaction = []
+for v in var_order_no_interaction:
+    coef_row = {"Variable": var_display_no_interaction[v]}
+    tval_row = {"Variable": ""}
+    for model_name, model_vars in models_no_interaction.items():
+        X = df_with_dummies[model_vars["X"]]
+        y = df_with_dummies[model_vars["Y"]]
+        X = sm.add_constant(X)
+        model = sm.OLS(y, X).fit()
+        if v == "_cons":
+            coef = model.params["const"]
+            tval = model.tvalues["const"]
+            pval = model.pvalues["const"]
+        else:
+            coef = model.params.get(v, np.nan)
+            tval = model.tvalues.get(v, np.nan)
+            pval = model.pvalues.get(v, np.nan)
+        stars = ""
+        if pval < 0.01:
+            stars = "***"
+        elif pval < 0.05:
+            stars = "**"
+        elif pval < 0.1:
+            stars = "*"
+        coef_row[model_name] = f"{coef:.4f}{stars}" if not np.isnan(coef) else ""
+        tval_row[model_name] = f"({tval:.2f})" if not np.isnan(tval) else ""
+    table_rows_no_interaction.append(coef_row)
+    table_rows_no_interaction.append(tval_row)
+
+# adj. R-sq（無交互項）
+adjr_row_no_interaction = {"Variable": "adj. R-sq"}
+for model_name, model_vars in models_no_interaction.items():
+    X = df_with_dummies[model_vars["X"]]
+    y = df_with_dummies[model_vars["Y"]]
+    X = sm.add_constant(X)
+    model = sm.OLS(y, X).fit()
+    adjr_row_no_interaction[model_name] = f"{model.rsquared_adj:.3f}"
+table_rows_no_interaction.append(adjr_row_no_interaction)
+
+regression_table_no_interaction = pd.DataFrame(table_rows_no_interaction)
+regression_table_no_interaction.to_csv("regression_table_no_interaction.csv", index=False)
+print("\n已輸出整理後的迴歸表格（無交互項）regression_table_no_interaction.csv（t值在係數下一列）。")
+
+print("\n" + "="*60)
+print("已完成兩個版本的OLS線性迴歸分析：")
+print("1. 包含交互項版本：regression_table.csv") 
+print("2. 不含交互項版本：regression_table_no_interaction.csv")
+print("="*60)
+
+
 ## 進行 2SLS 迴歸分析
 # 檢查工具變數是否存在
 iv_vars = ['freeFloatShareholding', 'insiderShareholding']
@@ -714,6 +814,159 @@ else:
                 elif pval < 0.1:
                     stars = "*"
                 print(f"{iv}: {coef:.4f}{stars}")
+        
+        # ===== 2SLS分析（沒有交互項版本）=====
+        print("\n" + "="*60)
+        print("2SLS分析 - 沒有交互項版本")
+        print("="*60)
+        
+        # 定義基本控制變數（不包含交互項）
+        base_controls_no_interaction = ["gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte"] + \
+                                     list(year_dummies.columns) + list(industry_dummies.columns)
+        
+        # 創建結果表格（無交互項）
+        table_2sls_results_no_interaction = []
+        
+        # 定義變數顯示順序和名稱（無交互項）
+        main_vars_no_interaction = ["family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte"]
+        
+        var_display_no_interaction = {
+            "family": "Family",
+            "gov": "Gov", 
+            "g": "G",
+            "size": "Size",
+            "lev": "Lev",
+            "roa": "ROA",
+            "mtb": "MTB",
+            "kz": "KZ",
+            "boardSize": "Board Size",
+            "CEOdual": "CEO Duality",
+            "CSRcmte": "CSR Committee",
+            "freeFloatShareholding": "Free float (IV1)",
+            "insiderShareholding": "Insider (IV2)"
+        }
+        
+        # 第一階段迴歸（無交互項）
+        print("\n=== 第一階段迴歸 (Family as dependent variable - 無交互項) ===")
+        first_stage_controls_no_interaction = base_controls_no_interaction
+        first_stage_X_no_interaction = df_2sls[first_stage_controls_no_interaction + iv_vars]
+        first_stage_X_no_interaction = sm.add_constant(first_stage_X_no_interaction)
+        first_stage_y_no_interaction = df_2sls['family']
+        first_stage_model_no_interaction = sm.OLS(first_stage_y_no_interaction, first_stage_X_no_interaction).fit(cov_type='HC1')
+        
+        # 第二階段迴歸（無交互項）
+        second_stage_models_no_interaction = {}
+        for model_name, dep_var in models_2sls.items():
+            print(f"\n=== {model_name}: {dep_var} (無交互項) ===")
+            
+            # 外生變數（不包含交互項）
+            exog_vars_list_no_interaction = base_controls_no_interaction
+            
+            y = df_2sls[dep_var]
+            exog = df_2sls[exog_vars_list_no_interaction]
+            exog = sm.add_constant(exog)  # 加入常數項
+            endog = df_2sls[endog_vars]  # 仍然只有family是內生的
+            instruments = df_2sls[iv_vars]
+            
+            second_stage_models_no_interaction[model_name] = IV2SLS(y, exog, endog, instruments).fit(cov_type='robust')
+        
+        # 組織表格數據（無交互項）
+        for var in main_vars_no_interaction + iv_vars:
+            if var in var_display_no_interaction:
+                var_name = var_display_no_interaction[var]
+                
+                # 第一階段結果
+                if var in endog_vars:
+                    first_stage_coef, first_stage_t = "", ""
+                else:
+                    first_stage_coef, first_stage_t = get_coef_info(first_stage_model_no_interaction, var)
+                
+                # 第二階段結果
+                model1_coef, model1_t = get_coef_info(second_stage_models_no_interaction["Model 1"], var)
+                model2_coef, model2_t = get_coef_info(second_stage_models_no_interaction["Model 2"], var)
+                model3_coef, model3_t = get_coef_info(second_stage_models_no_interaction["Model 3"], var)
+                
+                # 添加係數行
+                table_2sls_results_no_interaction.append({
+                    "Variable": var_name,
+                    "First Stage": first_stage_coef,
+                    "Model 1": model1_coef,
+                    "Model 2": model2_coef,
+                    "Model 3": model3_coef
+                })
+                
+                # 添加t值行
+                table_2sls_results_no_interaction.append({
+                    "Variable": "",
+                    "First Stage": first_stage_t,
+                    "Model 1": model1_t,
+                    "Model 2": model2_t,
+                    "Model 3": model3_t
+                })
+        
+        # 添加控制變數和統計量（無交互項）
+        table_2sls_results_no_interaction.extend([
+            {"Variable": "Year", "First Stage": "Y", "Model 1": "Y", "Model 2": "Y", "Model 3": "Y"},
+            {"Variable": "Industry", "First Stage": "Y", "Model 1": "Y", "Model 2": "Y", "Model 3": "Y"}
+        ])
+        
+        # 常數項（無交互項）
+        const_first_no_int, const_first_t_no_int = get_coef_info(first_stage_model_no_interaction, "const")
+        const_1_no_int, const_1_t_no_int = get_coef_info(second_stage_models_no_interaction["Model 1"], "const")
+        const_2_no_int, const_2_t_no_int = get_coef_info(second_stage_models_no_interaction["Model 2"], "const")
+        const_3_no_int, const_3_t_no_int = get_coef_info(second_stage_models_no_interaction["Model 3"], "const")
+        
+        table_2sls_results_no_interaction.extend([
+            {"Variable": "_cons", "First Stage": const_first_no_int, "Model 1": const_1_no_int, "Model 2": const_2_no_int, "Model 3": const_3_no_int},
+            {"Variable": "", "First Stage": const_first_t_no_int, "Model 1": const_1_t_no_int, "Model 2": const_2_t_no_int, "Model 3": const_3_t_no_int}
+        ])
+        
+        # 模型統計量（無交互項）
+        table_2sls_results_no_interaction.extend([
+            {
+                "Variable": "N",
+                "First Stage": f"{first_stage_model_no_interaction.nobs}",
+                "Model 1": f"{second_stage_models_no_interaction['Model 1'].nobs}",
+                "Model 2": f"{second_stage_models_no_interaction['Model 2'].nobs}",
+                "Model 3": f"{second_stage_models_no_interaction['Model 3'].nobs}"
+            },
+            {
+                "Variable": "R-sq",
+                "First Stage": f"{first_stage_model_no_interaction.rsquared:.3f}",
+                "Model 1": f"{second_stage_models_no_interaction['Model 1'].rsquared:.3f}",
+                "Model 2": f"{second_stage_models_no_interaction['Model 2'].rsquared:.3f}",
+                "Model 3": f"{second_stage_models_no_interaction['Model 3'].rsquared:.3f}"
+            }
+        ])
+        
+        # 儲存結果（無交互項）
+        df_results_2sls_no_interaction = pd.DataFrame(table_2sls_results_no_interaction)
+        df_results_2sls_no_interaction.to_csv("iv_2sls_results_no_interaction.csv", index=False)
+        print("\n已輸出2SLS分析結果表格（無交互項）：iv_2sls_results_no_interaction.csv")
+        
+        # 顯示第一階段F統計量（無交互項）
+        print(f"\n第一階段 F-statistic（無交互項）: {first_stage_model_no_interaction.fvalue:.2f}")
+        
+        # 顯示工具變數相關係數（無交互項）
+        print("\n工具變數係數（無交互項）:")
+        for iv in iv_vars:
+            if iv in first_stage_model_no_interaction.params.index:
+                coef = first_stage_model_no_interaction.params[iv]
+                pval = first_stage_model_no_interaction.pvalues[iv]
+                stars = ""
+                if pval < 0.01:
+                    stars = "***"
+                elif pval < 0.05:
+                    stars = "**"
+                elif pval < 0.1:
+                    stars = "*"
+                print(f"{iv}: {coef:.4f}{stars}")
+        
+        print("\n" + "="*60)
+        print("已完成兩個版本的2SLS分析：")
+        print("1. 包含交互項版本：iv_2sls_results_table.csv")
+        print("2. 不含交互項版本：iv_2sls_results_no_interaction.csv")
+        print("="*60)
         
     except ImportError:
         print("\n錯誤：需要安裝 linearmodels 套件來進行2SLS分析")
