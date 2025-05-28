@@ -432,8 +432,8 @@ if not missing_vars:
     
     # 整理成表格格式（每個變數兩列：一列係數+星號，一列t值）
     var_order = [
-        "family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_family", "g_gov", "_cons"
-    ] + list(year_dummies.columns) + list(industry_dummies.columns)
+        "family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_family", "g_gov"
+    ]
     
     var_display = {
         "family": "Family",
@@ -448,14 +448,8 @@ if not missing_vars:
         "CEOdual": "CEO Duality",
         "CSRcmte": "CSR Committee",
         "g_family": "G*Family",
-        "g_gov": "G*Gov",
-        "_cons": "_cons"
+        "g_gov": "G*Gov"
     }
-    # 為虛擬變數添加顯示名稱
-    for col in year_dummies.columns:
-        var_display[col] = col
-    for col in industry_dummies.columns:
-        var_display[col] = col
     
     # 收集每個模型的結果
     table_rows = []
@@ -467,14 +461,9 @@ if not missing_vars:
             y = df_with_dummies[model_vars["Y"]]
             X = sm.add_constant(X)
             model = sm.OLS(y, X).fit()
-            if v == "_cons":
-                coef = model.params["const"]
-                tval = model.tvalues["const"]
-                pval = model.pvalues["const"]
-            else:
-                coef = model.params.get(v, np.nan)
-                tval = model.tvalues.get(v, np.nan)
-                pval = model.pvalues.get(v, np.nan)
+            coef = model.params.get(v, np.nan)
+            tval = model.tvalues.get(v, np.nan)
+            pval = model.pvalues.get(v, np.nan)
             stars = ""
             if pval < 0.01:
                 stars = "***"
@@ -486,6 +475,36 @@ if not missing_vars:
             tval_row[model_name] = f"({tval:.2f})" if not np.isnan(tval) else ""
         table_rows.append(coef_row)
         table_rows.append(tval_row)
+    
+    # 添加Year和Industry控制變數行
+    table_rows.append({"Variable": "Year", "Model 1": "Y", "Model 2": "Y", "Model 3": "Y"})
+    table_rows.append({"Variable": "", "Model 1": "", "Model 2": "", "Model 3": ""})
+    table_rows.append({"Variable": "Industry", "Model 1": "Y", "Model 2": "Y", "Model 3": "Y"})
+    table_rows.append({"Variable": "", "Model 1": "", "Model 2": "", "Model 3": ""})
+    
+    # 添加常數項(_cons)
+    const_row = {"Variable": "_cons"}
+    const_tval_row = {"Variable": ""}
+    for model_name, model_vars in models.items():
+        X = df_with_dummies[model_vars["X"]]
+        y = df_with_dummies[model_vars["Y"]]
+        X = sm.add_constant(X)
+        model = sm.OLS(y, X).fit()
+        coef = model.params["const"]
+        tval = model.tvalues["const"]
+        pval = model.pvalues["const"]
+        stars = ""
+        if pval < 0.01:
+            stars = "***"
+        elif pval < 0.05:
+            stars = "**"
+        elif pval < 0.1:
+            stars = "*"
+        const_row[model_name] = f"{coef:.4f}{stars}"
+        const_tval_row[model_name] = f"({tval:.2f})"
+    table_rows.append(const_row)
+    table_rows.append(const_tval_row)
+    
     # adj. R-sq
     adjr_row = {"Variable": "adj. R-sq"}
     for model_name, model_vars in models.items():
@@ -496,7 +515,7 @@ if not missing_vars:
         adjr_row[model_name] = f"{model.rsquared_adj:.3f}"
     table_rows.append(adjr_row)
     regression_table = pd.DataFrame(table_rows)
-    regression_table.to_csv("regression_table.csv", index=False)
+    regression_table.to_csv("regression_table.csv", index=False, encoding='utf-8-sig')
     print("\n已輸出整理後的迴歸表格 regression_table.csv（t值在係數下一列）。")
 
 
@@ -526,8 +545,8 @@ models_no_interaction = {
 
 # 整理成表格格式（無交互項）
 var_order_no_interaction = [
-    "family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "_cons"
-] + list(year_dummies.columns) + list(industry_dummies.columns)
+    "family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte"
+]
 
 var_display_no_interaction = {
     "family": "Family",
@@ -540,14 +559,8 @@ var_display_no_interaction = {
     "kz": "KZ",
     "boardSize": "Board Size",
     "CEOdual": "CEO Duality",
-    "CSRcmte": "CSR Committee",
-    "_cons": "_cons"
+    "CSRcmte": "CSR Committee"
 }
-# 為虛擬變數添加顯示名稱（無交互項）
-for col in year_dummies.columns:
-    var_display_no_interaction[col] = col
-for col in industry_dummies.columns:
-    var_display_no_interaction[col] = col
 
 # 收集每個模型的結果（無交互項）
 table_rows_no_interaction = []
@@ -559,14 +572,9 @@ for v in var_order_no_interaction:
         y = df_with_dummies[model_vars["Y"]]
         X = sm.add_constant(X)
         model = sm.OLS(y, X).fit()
-        if v == "_cons":
-            coef = model.params["const"]
-            tval = model.tvalues["const"]
-            pval = model.pvalues["const"]
-        else:
-            coef = model.params.get(v, np.nan)
-            tval = model.tvalues.get(v, np.nan)
-            pval = model.pvalues.get(v, np.nan)
+        coef = model.params.get(v, np.nan)
+        tval = model.tvalues.get(v, np.nan)
+        pval = model.pvalues.get(v, np.nan)
         stars = ""
         if pval < 0.01:
             stars = "***"
@@ -579,6 +587,35 @@ for v in var_order_no_interaction:
     table_rows_no_interaction.append(coef_row)
     table_rows_no_interaction.append(tval_row)
 
+# 添加Year和Industry控制變數行
+table_rows_no_interaction.append({"Variable": "Year", "Model 1": "Y", "Model 2": "Y", "Model 3": "Y"})
+table_rows_no_interaction.append({"Variable": "", "Model 1": "", "Model 2": "", "Model 3": ""})
+table_rows_no_interaction.append({"Variable": "Industry", "Model 1": "Y", "Model 2": "Y", "Model 3": "Y"})
+table_rows_no_interaction.append({"Variable": "", "Model 1": "", "Model 2": "", "Model 3": ""})
+
+# 添加常數項(_cons)
+const_row_no_interaction = {"Variable": "_cons"}
+const_tval_row_no_interaction = {"Variable": ""}
+for model_name, model_vars in models_no_interaction.items():
+    X = df_with_dummies[model_vars["X"]]
+    y = df_with_dummies[model_vars["Y"]]
+    X = sm.add_constant(X)
+    model = sm.OLS(y, X).fit()
+    coef = model.params["const"]
+    tval = model.tvalues["const"]
+    pval = model.pvalues["const"]
+    stars = ""
+    if pval < 0.01:
+        stars = "***"
+    elif pval < 0.05:
+        stars = "**"
+    elif pval < 0.1:
+        stars = "*"
+    const_row_no_interaction[model_name] = f"{coef:.4f}{stars}"
+    const_tval_row_no_interaction[model_name] = f"({tval:.2f})"
+table_rows_no_interaction.append(const_row_no_interaction)
+table_rows_no_interaction.append(const_tval_row_no_interaction)
+
 # adj. R-sq（無交互項）
 adjr_row_no_interaction = {"Variable": "adj. R-sq"}
 for model_name, model_vars in models_no_interaction.items():
@@ -590,7 +627,7 @@ for model_name, model_vars in models_no_interaction.items():
 table_rows_no_interaction.append(adjr_row_no_interaction)
 
 regression_table_no_interaction = pd.DataFrame(table_rows_no_interaction)
-regression_table_no_interaction.to_csv("regression_table_no_interaction.csv", index=False)
+regression_table_no_interaction.to_csv("regression_table_no_interaction.csv", index=False, encoding='utf-8-sig')
 print("\n已輸出整理後的迴歸表格（無交互項）regression_table_no_interaction.csv（t值在係數下一列）。")
 
 print("\n" + "="*60)
@@ -973,3 +1010,584 @@ else:
         print("請執行：pip install linearmodels")
     except Exception as e:
         print(f"\n2SLS分析過程中發生錯誤：{str(e)}")
+
+
+# 線性迴歸分析（Family 作為主要觀察變數）
+print("\n" + "="*80)
+print("OLS線性迴歸分析 - Family 作為主要觀察變數")
+print("="*80)
+
+# 在進行迴歸分析前，確保所有變數都是數值型
+print("\n檢查並轉換資料類型...")
+required_vars_family = ['gap', 'gap_e', 'gap_s', 'family', 'g', 'size', 'lev', 'roa', 'mtb', 'kz', 'boardSize', 'CEOdual', 'CSRcmte', 'g_family']
+
+# 檢查資料類型
+print("資料類型檢查：")
+for var in required_vars_family:
+    if var in df_with_dummies.columns:
+        print(f"{var}: {df_with_dummies[var].dtype}")
+        # 轉換為數值型
+        df_with_dummies[var] = pd.to_numeric(df_with_dummies[var], errors='coerce')
+    else:
+        print(f"警告：變數 {var} 不存在")
+
+# 確保虛擬變數也是數值型
+for col in list(year_dummies.columns) + list(industry_dummies.columns):
+    df_with_dummies[col] = pd.to_numeric(df_with_dummies[col], errors='coerce')
+
+# 檢查並移除包含NaN的行
+print(f"\n轉換前樣本數：{len(df_with_dummies)}")
+df_with_dummies = df_with_dummies.dropna(subset=required_vars_family)
+print(f"移除NaN後樣本數：{len(df_with_dummies)}")
+
+# 定義三個模型的變數 (Family 作為主要觀察變數)
+models_family = {
+    "Model 1": {
+        "Y": "gap",
+        "X": ["family", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_family"] + \
+             list(year_dummies.columns) + list(industry_dummies.columns)
+    },
+    "Model 2": {
+        "Y": "gap_e",
+        "X": ["family", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_family"] + \
+             list(year_dummies.columns) + list(industry_dummies.columns)
+    },
+    "Model 3": {
+        "Y": "gap_s",
+        "X": ["family", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_family"] + \
+             list(year_dummies.columns) + list(industry_dummies.columns)
+    }
+}
+
+# 整理成表格格式（Family 作為主要觀察變數）
+var_order_family = [
+    "family", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_family"
+]
+
+var_display_family = {
+    "family": "Family",
+    "g": "G", 
+    "size": "Size",
+    "lev": "Lev",
+    "roa": "ROA",
+    "mtb": "MTB",
+    "kz": "KZ",
+    "boardSize": "Board Size",
+    "CEOdual": "CEO Duality",
+    "CSRcmte": "CSR Committee",
+    "g_family": "G*Family"
+}
+
+# 收集每個模型的結果（Family 作為主要觀察變數）
+table_rows_family = []
+for v in var_order_family:
+    coef_row = {"Variable": var_display_family[v]}
+    tval_row = {"Variable": ""}
+    for model_name, model_vars in models_family.items():
+        X = df_with_dummies[model_vars["X"]]
+        y = df_with_dummies[model_vars["Y"]]
+        X = sm.add_constant(X)
+        model = sm.OLS(y, X).fit()
+        coef = model.params.get(v, np.nan)
+        tval = model.tvalues.get(v, np.nan)
+        pval = model.pvalues.get(v, np.nan)
+        stars = ""
+        if pval < 0.01:
+            stars = "***"
+        elif pval < 0.05:
+            stars = "**"
+        elif pval < 0.1:
+            stars = "*"
+        coef_row[model_name] = f"{coef:.4f}{stars}" if not np.isnan(coef) else ""
+        tval_row[model_name] = f"({tval:.2f})" if not np.isnan(tval) else ""
+    table_rows_family.append(coef_row)
+    table_rows_family.append(tval_row)
+
+# 添加Year和Industry控制變數行
+table_rows_family.append({"Variable": "Year", "Model 1": "Y", "Model 2": "Y", "Model 3": "Y"})
+table_rows_family.append({"Variable": "", "Model 1": "", "Model 2": "", "Model 3": ""})
+table_rows_family.append({"Variable": "Industry", "Model 1": "Y", "Model 2": "Y", "Model 3": "Y"})
+table_rows_family.append({"Variable": "", "Model 1": "", "Model 2": "", "Model 3": ""})
+
+# 添加常數項(_cons)
+const_row_family = {"Variable": "_cons"}
+const_tval_row_family = {"Variable": ""}
+for model_name, model_vars in models_family.items():
+    X = df_with_dummies[model_vars["X"]]
+    y = df_with_dummies[model_vars["Y"]]
+    X = sm.add_constant(X)
+    model = sm.OLS(y, X).fit()
+    coef = model.params["const"]
+    tval = model.tvalues["const"]
+    pval = model.pvalues["const"]
+    stars = ""
+    if pval < 0.01:
+        stars = "***"
+    elif pval < 0.05:
+        stars = "**"
+    elif pval < 0.1:
+        stars = "*"
+    const_row_family[model_name] = f"{coef:.4f}{stars}"
+    const_tval_row_family[model_name] = f"({tval:.2f})"
+table_rows_family.append(const_row_family)
+table_rows_family.append(const_tval_row_family)
+
+# adj. R-sq（Family）
+adjr_row_family = {"Variable": "adj. R-sq"}
+for model_name, model_vars in models_family.items():
+    X = df_with_dummies[model_vars["X"]]
+    y = df_with_dummies[model_vars["Y"]]
+    X = sm.add_constant(X)
+    model = sm.OLS(y, X).fit()
+    adjr_row_family[model_name] = f"{model.rsquared_adj:.3f}"
+table_rows_family.append(adjr_row_family)
+
+regression_table_family = pd.DataFrame(table_rows_family)
+regression_table_family.to_csv("regression_table_family.csv", index=False, encoding='utf-8-sig')
+print("\n已輸出 Family 作為主要觀察變數的迴歸表格：regression_table_family.csv")
+
+# ==========================================
+# 線性迴歸分析（Gov 作為主要觀察變數）
+print("\n" + "="*80)
+print("OLS線性迴歸分析 - Gov 作為主要觀察變數")
+print("="*80)
+
+# 在進行迴歸分析前，確保所有變數都是數值型
+print("\n檢查並轉換資料類型...")
+required_vars_gov = ['gap', 'gap_e', 'gap_s', 'gov', 'g', 'size', 'lev', 'roa', 'mtb', 'kz', 'boardSize', 'CEOdual', 'CSRcmte', 'g_gov']
+
+# 檢查資料類型
+print("資料類型檢查：")
+for var in required_vars_gov:
+    if var in df_with_dummies.columns:
+        print(f"{var}: {df_with_dummies[var].dtype}")
+        # 轉換為數值型
+        df_with_dummies[var] = pd.to_numeric(df_with_dummies[var], errors='coerce')
+    else:
+        print(f"警告：變數 {var} 不存在")
+
+# 確保虛擬變數也是數值型（如果前面沒做過）
+for col in list(year_dummies.columns) + list(industry_dummies.columns):
+    df_with_dummies[col] = pd.to_numeric(df_with_dummies[col], errors='coerce')
+
+# 檢查並移除包含NaN的行
+print(f"\n轉換前樣本數：{len(df_with_dummies)}")
+df_with_dummies = df_with_dummies.dropna(subset=required_vars_gov)
+print(f"移除NaN後樣本數：{len(df_with_dummies)}")
+
+# 定義三個模型的變數 (Gov 作為主要觀察變數)
+models_gov = {
+    "Model 1": {
+        "Y": "gap",
+        "X": ["gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_gov"] + \
+             list(year_dummies.columns) + list(industry_dummies.columns)
+    },
+    "Model 2": {
+        "Y": "gap_e",
+        "X": ["gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_gov"] + \
+             list(year_dummies.columns) + list(industry_dummies.columns)
+    },
+    "Model 3": {
+        "Y": "gap_s",
+        "X": ["gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_gov"] + \
+             list(year_dummies.columns) + list(industry_dummies.columns)
+    }
+}
+
+# 整理成表格格式（Gov 作為主要觀察變數）
+var_order_gov = [
+    "gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_gov"
+]
+
+var_display_gov = {
+    "gov": "Gov",
+    "g": "G",
+    "size": "Size",
+    "lev": "Lev",
+    "roa": "ROA",
+    "mtb": "MTB",
+    "kz": "KZ",
+    "boardSize": "Board Size",
+    "CEOdual": "CEO Duality",
+    "CSRcmte": "CSR Committee",
+    "g_gov": "G*Gov"
+}
+# 為虛擬變數添加顯示名稱
+for col in year_dummies.columns:
+    var_display_gov[col] = col
+for col in industry_dummies.columns:
+    var_display_gov[col] = col
+
+# 收集每個模型的結果（Gov 作為主要觀察變數）
+table_rows_gov = []
+for v in var_order_gov:
+    coef_row = {"Variable": var_display_gov[v]}
+    tval_row = {"Variable": ""}
+    for model_name, model_vars in models_gov.items():
+        X = df_with_dummies[model_vars["X"]]
+        y = df_with_dummies[model_vars["Y"]]
+        X = sm.add_constant(X)
+        model = sm.OLS(y, X).fit()
+        coef = model.params.get(v, np.nan)
+        tval = model.tvalues.get(v, np.nan)
+        pval = model.pvalues.get(v, np.nan)
+        stars = ""
+        if pval < 0.01:
+            stars = "***"
+        elif pval < 0.05:
+            stars = "**"
+        elif pval < 0.1:
+            stars = "*"
+        coef_row[model_name] = f"{coef:.4f}{stars}" if not np.isnan(coef) else ""
+        tval_row[model_name] = f"({tval:.2f})" if not np.isnan(tval) else ""
+    table_rows_gov.append(coef_row)
+    table_rows_gov.append(tval_row)
+
+# 添加Year和Industry控制變數行
+table_rows_gov.append({"Variable": "Year", "Model 1": "Y", "Model 2": "Y", "Model 3": "Y"})
+table_rows_gov.append({"Variable": "", "Model 1": "", "Model 2": "", "Model 3": ""})
+table_rows_gov.append({"Variable": "Industry", "Model 1": "Y", "Model 2": "Y", "Model 3": "Y"})
+table_rows_gov.append({"Variable": "", "Model 1": "", "Model 2": "", "Model 3": ""})
+
+# 添加常數項(_cons)
+const_row_gov = {"Variable": "_cons"}
+const_tval_row_gov = {"Variable": ""}
+for model_name, model_vars in models_gov.items():
+    X = df_with_dummies[model_vars["X"]]
+    y = df_with_dummies[model_vars["Y"]]
+    X = sm.add_constant(X)
+    model = sm.OLS(y, X).fit()
+    coef = model.params["const"]
+    tval = model.tvalues["const"]
+    pval = model.pvalues["const"]
+    stars = ""
+    if pval < 0.01:
+        stars = "***"
+    elif pval < 0.05:
+        stars = "**"
+    elif pval < 0.1:
+        stars = "*"
+    const_row_gov[model_name] = f"{coef:.4f}{stars}"
+    const_tval_row_gov[model_name] = f"({tval:.2f})"
+table_rows_gov.append(const_row_gov)
+table_rows_gov.append(const_tval_row_gov)
+
+# adj. R-sq（Gov）
+adjr_row_gov = {"Variable": "adj. R-sq"}
+for model_name, model_vars in models_gov.items():
+    X = df_with_dummies[model_vars["X"]]
+    y = df_with_dummies[model_vars["Y"]]
+    X = sm.add_constant(X)
+    model = sm.OLS(y, X).fit()
+    adjr_row_gov[model_name] = f"{model.rsquared_adj:.3f}"
+table_rows_gov.append(adjr_row_gov)
+
+regression_table_gov = pd.DataFrame(table_rows_gov)
+regression_table_gov.to_csv("regression_table_gov.csv", index=False, encoding='utf-8-sig')
+print("\n已輸出 Gov 作為主要觀察變數的迴歸表格：regression_table_gov.csv")
+
+# ==========================================
+# 進行 2SLS 迴歸分析（Family 作為主要觀察變數）
+print("\n" + "="*80)
+print("2SLS分析 - Family 作為主要觀察變數（內生變數）")
+print("="*80)
+
+if not missing_iv:  # 如果工具變數存在
+    try:
+        # Family 作為內生變數的第一階段迴歸
+        print("\n=== 第一階段迴歸 (Family as dependent variable) ===")
+        first_stage_controls_family = ["g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte"] + \
+                                     list(year_dummies.columns) + list(industry_dummies.columns)
+        first_stage_X_family = df_2sls[first_stage_controls_family + iv_vars]
+        first_stage_X_family = sm.add_constant(first_stage_X_family)
+        first_stage_y_family = df_2sls['family']
+        first_stage_model_family = sm.OLS(first_stage_y_family, first_stage_X_family).fit(cov_type='HC1')
+        
+        # 第二階段迴歸 (Family as endogenous)
+        second_stage_models_family = {}
+        for model_name, dep_var in {"Model 1": "gap", "Model 2": "gap_e", "Model 3": "gap_s"}.items():
+            print(f"\n=== {model_name}: {dep_var} ===")
+            
+            # 需要先計算 G*Family 的預測值用於第二階段
+            # 由於 Family 是內生的，我們需要使用第一階段的預測值來計算交互項
+            family_fitted = first_stage_model_family.fittedvalues
+            g_family_fitted = df_2sls['g'] * family_fitted
+            
+            # 創建包含預測交互項的資料
+            exog_data_family = df_2sls[["g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte"] + \
+                                      list(year_dummies.columns) + list(industry_dummies.columns)].copy()
+            exog_data_family['g_family_fitted'] = g_family_fitted
+            
+            y = df_2sls[dep_var]
+            exog = exog_data_family
+            exog = sm.add_constant(exog)
+            endog = df_2sls[['family']]
+            instruments = df_2sls[iv_vars]
+            
+            second_stage_models_family[model_name] = IV2SLS(y, exog, endog, instruments).fit(cov_type='robust')
+        
+        # 建立 Family 2SLS 結果表格
+        table_2sls_family_results = []
+        main_vars_family = ["family", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_family_fitted"]
+        
+        for var in main_vars_family + iv_vars:
+            if var in ["family", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_family_fitted", "freeFloatShareholding", "insiderShareholding"]:
+                if var == "family":
+                    var_name = "Family"
+                    # Family 是內生變數，不會出現在第一階段的右側
+                    first_stage_coef, first_stage_t = "", ""
+                elif var == "g_family_fitted":
+                    var_name = "G*Family"
+                    # G*Family 使用 G 在第一階段的係數（因為交互項由 G 和預測的 Family 組成）
+                    first_stage_coef, first_stage_t = get_coef_info(first_stage_model_family, "g")
+                else:
+                    if var == "g":
+                        var_name = "G"
+                    elif var == "size":
+                        var_name = "Size"
+                    elif var == "lev":
+                        var_name = "Lev"
+                    elif var == "roa":
+                        var_name = "ROA"
+                    elif var == "mtb":
+                        var_name = "MTB"
+                    elif var == "kz":
+                        var_name = "KZ"
+                    elif var == "boardSize":
+                        var_name = "Board Size"
+                    elif var == "CEOdual":
+                        var_name = "CEO Duality"
+                    elif var == "CSRcmte":
+                        var_name = "CSR Committee"
+                    elif var == "freeFloatShareholding":
+                        var_name = "Free float (IV1)"
+                    elif var == "insiderShareholding":
+                        var_name = "Insider (IV2)"
+                    
+                    first_stage_coef, first_stage_t = get_coef_info(first_stage_model_family, var)
+                
+                # 第二階段結果
+                model1_coef, model1_t = get_coef_info(second_stage_models_family["Model 1"], var)
+                model2_coef, model2_t = get_coef_info(second_stage_models_family["Model 2"], var)
+                model3_coef, model3_t = get_coef_info(second_stage_models_family["Model 3"], var)
+                
+                # 添加係數行
+                table_2sls_family_results.append({
+                    "Variable": var_name,
+                    "First Stage": first_stage_coef,
+                    "Model 1": model1_coef,
+                    "Model 2": model2_coef,
+                    "Model 3": model3_coef
+                })
+                
+                # 添加t值行
+                table_2sls_family_results.append({
+                    "Variable": "",
+                    "First Stage": first_stage_t,
+                    "Model 1": model1_t,
+                    "Model 2": model2_t,
+                    "Model 3": model3_t
+                })
+        
+        # 添加控制變數和統計量
+        table_2sls_family_results.extend([
+            {"Variable": "Year", "First Stage": "Y", "Model 1": "Y", "Model 2": "Y", "Model 3": "Y"},
+            {"Variable": "Industry", "First Stage": "Y", "Model 1": "Y", "Model 2": "Y", "Model 3": "Y"}
+        ])
+        
+        # 常數項
+        const_first_family, const_first_t_family = get_coef_info(first_stage_model_family, "const")
+        const_1_family, const_1_t_family = get_coef_info(second_stage_models_family["Model 1"], "const")
+        const_2_family, const_2_t_family = get_coef_info(second_stage_models_family["Model 2"], "const")
+        const_3_family, const_3_t_family = get_coef_info(second_stage_models_family["Model 3"], "const")
+        
+        table_2sls_family_results.extend([
+            {"Variable": "_cons", "First Stage": const_first_family, "Model 1": const_1_family, "Model 2": const_2_family, "Model 3": const_3_family},
+            {"Variable": "", "First Stage": const_first_t_family, "Model 1": const_1_t_family, "Model 2": const_2_t_family, "Model 3": const_3_t_family}
+        ])
+        
+        # 模型統計量
+        table_2sls_family_results.extend([
+            {
+                "Variable": "N",
+                "First Stage": f"{first_stage_model_family.nobs}",
+                "Model 1": f"{second_stage_models_family['Model 1'].nobs}",
+                "Model 2": f"{second_stage_models_family['Model 2'].nobs}",
+                "Model 3": f"{second_stage_models_family['Model 3'].nobs}"
+            },
+            {
+                "Variable": "R-sq",
+                "First Stage": f"{first_stage_model_family.rsquared:.3f}",
+                "Model 1": f"{second_stage_models_family['Model 1'].rsquared:.3f}",
+                "Model 2": f"{second_stage_models_family['Model 2'].rsquared:.3f}",
+                "Model 3": f"{second_stage_models_family['Model 3'].rsquared:.3f}"
+            }
+        ])
+        
+        # 儲存結果
+        df_results_2sls_family = pd.DataFrame(table_2sls_family_results)
+        df_results_2sls_family.to_csv("iv_2sls_family_results.csv", index=False, encoding='utf-8-sig')
+        print("\n已輸出 Family 作為內生變數的 2SLS 分析結果：iv_2sls_family_results.csv")
+        
+        # 顯示第一階段F統計量
+        print(f"\n第一階段 F-statistic (Family): {first_stage_model_family.fvalue:.2f}")
+        
+    except Exception as e:
+        print(f"\nFamily 2SLS分析過程中發生錯誤：{str(e)}")
+
+# ==========================================
+# 進行 2SLS 迴歸分析（Gov 作為主要觀察變數）
+print("\n" + "="*80)
+print("2SLS分析 - Gov 作為主要觀察變數（內生變數）")
+print("="*80)
+
+if not missing_iv:  # 如果工具變數存在
+    try:
+        # Gov 作為內生變數的第一階段迴歸
+        print("\n=== 第一階段迴歸 (Gov as dependent variable) ===")
+        first_stage_controls_gov = ["g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte"] + \
+                                  list(year_dummies.columns) + list(industry_dummies.columns)
+        first_stage_X_gov = df_2sls[first_stage_controls_gov + iv_vars]
+        first_stage_X_gov = sm.add_constant(first_stage_X_gov)
+        first_stage_y_gov = df_2sls['gov']
+        first_stage_model_gov = sm.OLS(first_stage_y_gov, first_stage_X_gov).fit(cov_type='HC1')
+        
+        # 第二階段迴歸 (Gov as endogenous)
+        second_stage_models_gov = {}
+        for model_name, dep_var in {"Model 1": "gap", "Model 2": "gap_e", "Model 3": "gap_s"}.items():
+            print(f"\n=== {model_name}: {dep_var} ===")
+            
+            # 需要先計算 G*Gov 的預測值用於第二階段
+            # 由於 Gov 是內生的，我們需要使用第一階段的預測值來計算交互項
+            gov_fitted = first_stage_model_gov.fittedvalues
+            g_gov_fitted = df_2sls['g'] * gov_fitted
+            
+            # 創建包含預測交互項的資料
+            exog_data_gov = df_2sls[["g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte"] + \
+                                   list(year_dummies.columns) + list(industry_dummies.columns)].copy()
+            exog_data_gov['g_gov_fitted'] = g_gov_fitted
+            
+            y = df_2sls[dep_var]
+            exog = exog_data_gov
+            exog = sm.add_constant(exog)
+            endog = df_2sls[['gov']]
+            instruments = df_2sls[iv_vars]
+            
+            second_stage_models_gov[model_name] = IV2SLS(y, exog, endog, instruments).fit(cov_type='robust')
+        
+        # 建立 Gov 2SLS 結果表格
+        table_2sls_gov_results = []
+        main_vars_gov = ["gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_gov_fitted"]
+        
+        for var in main_vars_gov + iv_vars:
+            if var in ["gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_gov_fitted", "freeFloatShareholding", "insiderShareholding"]:
+                if var == "gov":
+                    var_name = "Gov"
+                    # Gov 是內生變數，不會出現在第一階段的右側
+                    first_stage_coef, first_stage_t = "", ""
+                elif var == "g_gov_fitted":
+                    var_name = "G*Gov"
+                    # G*Gov 使用 G 在第一階段的係數（因為交互項由 G 和預測的 Gov 組成）
+                    first_stage_coef, first_stage_t = get_coef_info(first_stage_model_gov, "g")
+                else:
+                    if var == "g":
+                        var_name = "G"
+                    elif var == "size":
+                        var_name = "Size"
+                    elif var == "lev":
+                        var_name = "Lev"
+                    elif var == "roa":
+                        var_name = "ROA"
+                    elif var == "mtb":
+                        var_name = "MTB"
+                    elif var == "kz":
+                        var_name = "KZ"
+                    elif var == "boardSize":
+                        var_name = "Board Size"
+                    elif var == "CEOdual":
+                        var_name = "CEO Duality"
+                    elif var == "CSRcmte":
+                        var_name = "CSR Committee"
+                    elif var == "freeFloatShareholding":
+                        var_name = "Free float (IV1)"
+                    elif var == "insiderShareholding":
+                        var_name = "Insider (IV2)"
+                    
+                    first_stage_coef, first_stage_t = get_coef_info(first_stage_model_gov, var)
+                
+                # 第二階段結果
+                model1_coef, model1_t = get_coef_info(second_stage_models_gov["Model 1"], var)
+                model2_coef, model2_t = get_coef_info(second_stage_models_gov["Model 2"], var)
+                model3_coef, model3_t = get_coef_info(second_stage_models_gov["Model 3"], var)
+                
+                # 添加係數行
+                table_2sls_gov_results.append({
+                    "Variable": var_name,
+                    "First Stage": first_stage_coef,
+                    "Model 1": model1_coef,
+                    "Model 2": model2_coef,
+                    "Model 3": model3_coef
+                })
+                
+                # 添加t值行
+                table_2sls_gov_results.append({
+                    "Variable": "",
+                    "First Stage": first_stage_t,
+                    "Model 1": model1_t,
+                    "Model 2": model2_t,
+                    "Model 3": model3_t
+                })
+        
+        # 添加控制變數和統計量
+        table_2sls_gov_results.extend([
+            {"Variable": "Year", "First Stage": "Y", "Model 1": "Y", "Model 2": "Y", "Model 3": "Y"},
+            {"Variable": "Industry", "First Stage": "Y", "Model 1": "Y", "Model 2": "Y", "Model 3": "Y"}
+        ])
+        
+        # 常數項
+        const_first_gov, const_first_t_gov = get_coef_info(first_stage_model_gov, "const")
+        const_1_gov, const_1_t_gov = get_coef_info(second_stage_models_gov["Model 1"], "const")
+        const_2_gov, const_2_t_gov = get_coef_info(second_stage_models_gov["Model 2"], "const")
+        const_3_gov, const_3_t_gov = get_coef_info(second_stage_models_gov["Model 3"], "const")
+        
+        table_2sls_gov_results.extend([
+            {"Variable": "_cons", "First Stage": const_first_gov, "Model 1": const_1_gov, "Model 2": const_2_gov, "Model 3": const_3_gov},
+            {"Variable": "", "First Stage": const_first_t_gov, "Model 1": const_1_t_gov, "Model 2": const_2_t_gov, "Model 3": const_3_t_gov}
+        ])
+        
+        # 模型統計量
+        table_2sls_gov_results.extend([
+            {
+                "Variable": "N",
+                "First Stage": f"{first_stage_model_gov.nobs}",
+                "Model 1": f"{second_stage_models_gov['Model 1'].nobs}",
+                "Model 2": f"{second_stage_models_gov['Model 2'].nobs}",
+                "Model 3": f"{second_stage_models_gov['Model 3'].nobs}"
+            },
+            {
+                "Variable": "R-sq",
+                "First Stage": f"{first_stage_model_gov.rsquared:.3f}",
+                "Model 1": f"{second_stage_models_gov['Model 1'].rsquared:.3f}",
+                "Model 2": f"{second_stage_models_gov['Model 2'].rsquared:.3f}",
+                "Model 3": f"{second_stage_models_gov['Model 3'].rsquared:.3f}"
+            }
+        ])
+        
+        # 儲存結果
+        df_results_2sls_gov = pd.DataFrame(table_2sls_gov_results)
+        df_results_2sls_gov.to_csv("iv_2sls_gov_results.csv", index=False, encoding='utf-8-sig')
+        print("\n已輸出 Gov 作為內生變數的 2SLS 分析結果：iv_2sls_gov_results.csv")
+        
+        # 顯示第一階段F統計量
+        print(f"\n第一階段 F-statistic (Gov): {first_stage_model_gov.fvalue:.2f}")
+        
+    except Exception as e:
+        print(f"\nGov 2SLS分析過程中發生錯誤：{str(e)}")
+
+print("\n" + "="*80)
+print("已完成所有分析：")
+print("1. Family 作為主要觀察變數的 OLS 分析：regression_table_family.csv")
+print("2. Gov 作為主要觀察變數的 OLS 分析：regression_table_gov.csv")
+print("3. Family 作為內生變數的 2SLS 分析：iv_2sls_family_results.csv")
+print("4. Gov 作為內生變數的 2SLS 分析：iv_2sls_gov_results.csv")
+print("="*80)
