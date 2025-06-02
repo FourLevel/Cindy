@@ -637,235 +637,235 @@ print("2. 不含交互項版本：regression_table_no_interaction.csv")
 print("="*60)
 
 
-# ## 進行 2SLS 迴歸分析 - 有交互項版本
-# print("\n" + "="*80)
-# print("2SLS 迴歸分析 - 有交互項版本")
-# print("="*80)
+## 進行 2SLS 迴歸分析 - 有交互項版本
+print("\n" + "="*80)
+print("2SLS 迴歸分析 - 有交互項版本")
+print("="*80)
 
-# # 檢查工具變數是否存在
-# iv_vars = ['freeFloatShareholding', 'insiderShareholding']
+# 檢查工具變數是否存在
+iv_vars = ['freeFloatShareholding', 'insiderShareholding']
 
-# print("\n檢查工具變數存在性：")
-# for var in iv_vars:
-#     if var in df_with_dummies.columns:
-#         print(f"{var} 存在")
-#     else:
-#         print(f"{var} 不存在")
+print("\n檢查工具變數存在性：")
+for var in iv_vars:
+    if var in df_with_dummies.columns:
+        print(f"{var} 存在")
+    else:
+        print(f"{var} 不存在")
 
-# missing_iv = [var for var in iv_vars if var not in df_with_dummies.columns]
+missing_iv = [var for var in iv_vars if var not in df_with_dummies.columns]
 
-# if missing_iv:
-#     print(f"\n警告：以下工具變數在資料集中不存在：{missing_iv}")
-#     print("請確認工具變數的欄位名稱是否正確。")
-# else:
-#     print("\n工具變數檢查通過，開始進行2SLS分析（有交互項版本）...")
+if missing_iv:
+    print(f"\n警告：以下工具變數在資料集中不存在：{missing_iv}")
+    print("請確認工具變數的欄位名稱是否正確。")
+else:
+    print("\n工具變數檢查通過，開始進行2SLS分析（有交互項版本）...")
     
-#     # 確保工具變數為數值型
-#     for var in iv_vars:
-#         df_with_dummies[var] = pd.to_numeric(df_with_dummies[var], errors='coerce')
+    # 確保工具變數為數值型
+    for var in iv_vars:
+        df_with_dummies[var] = pd.to_numeric(df_with_dummies[var], errors='coerce')
     
-#     # 移除包含NaN的行
-#     required_vars_2sls = iv_vars + ["gap", "gap_e", "gap_s", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_family", "g_gov"]
-#     df_2sls = df_with_dummies.dropna(subset=required_vars_2sls)
-#     print(f"2SLS分析樣本數（有交互項）：{len(df_2sls)}")
+    # 移除包含NaN的行
+    required_vars_2sls = iv_vars + ["gap", "gap_e", "gap_s", "family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_family", "g_gov"]
+    df_2sls = df_with_dummies.dropna(subset=required_vars_2sls)
+    print(f"2SLS分析樣本數（有交互項）：{len(df_2sls)}")
     
-#     try:
-#         # 導入2SLS所需的套件
-#         from linearmodels import IV2SLS
-#         import numpy as np
+    try:
+        # 導入2SLS所需的套件
+        from linearmodels import IV2SLS
+        import numpy as np
         
-#         # 重新計算交互項（因為可能有資料被移除）
-#         df_2sls['g_family'] = df_2sls['g'] * df_2sls['family']
-#         df_2sls['g_gov'] = df_2sls['g'] * df_2sls['gov']
+        # 重新計算交互項（因為可能有資料被移除）
+        df_2sls['g_family'] = df_2sls['g'] * df_2sls['family']
+        df_2sls['g_gov'] = df_2sls['g'] * df_2sls['gov']
         
-#         # 定義基本控制變數（包含交互項）
-#         base_controls = ["gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_family", "g_gov"] + \
-#                        list(year_dummies.columns) + list(industry_dummies.columns)
+        # 定義基本控制變數（包含交互項）
+        base_controls = ["gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_family", "g_gov"] + \
+                       list(year_dummies.columns) + list(industry_dummies.columns)
         
-#         # 定義三個2SLS模型（按照原始模型分類）
-#         models_2sls = {
-#             "Model 1": "gap",
-#             "Model 2": "gap_e", 
-#             "Model 3": "gap_s"
-#         }
+        # 定義三個2SLS模型（按照原始模型分類）
+        models_2sls = {
+            "Model 1": "gap",
+            "Model 2": "gap_e", 
+            "Model 3": "gap_s"
+        }
         
-#         # 定義內生變數
-#         endog_vars = ['family']  # family 為內生的
+        # 定義內生變數
+        endog_vars = ['family']  # family 為內生的
         
-#         # 創建結果表格
-#         table_2sls_results = []
+        # 創建結果表格
+        table_2sls_results = []
         
-#         # 定義變數顯示順序和名稱
-#         main_vars = ["family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_family", "g_gov"]
+        # 定義變數顯示順序和名稱
+        main_vars = ["family", "gov", "g", "size", "lev", "roa", "mtb", "kz", "boardSize", "CEOdual", "CSRcmte", "g_family", "g_gov"]
         
-#         var_display = {
-#             "family": "Family",
-#             "gov": "Gov",
-#             "g": "G",
-#             "size": "Size",
-#             "lev": "Lev",
-#             "roa": "ROA",
-#             "mtb": "MTB",
-#             "kz": "KZ",
-#             "boardSize": "Board Size",
-#             "CEOdual": "CEO Duality",
-#             "CSRcmte": "CSR Committee",
-#             "g_family": "G*Family",
-#             "g_gov": "G*Gov",
-#             "freeFloatShareholding": "Free float (IV1)",
-#             "insiderShareholding": "Insider (IV2)"
-#         }
+        var_display = {
+            "family": "Family",
+            "gov": "Gov",
+            "g": "G",
+            "size": "Size",
+            "lev": "Lev",
+            "roa": "ROA",
+            "mtb": "MTB",
+            "kz": "KZ",
+            "boardSize": "Board Size",
+            "CEOdual": "CEO Duality",
+            "CSRcmte": "CSR Committee",
+            "g_family": "G*Family",
+            "g_gov": "G*Gov",
+            "freeFloatShareholding": "Free float (IV1)",
+            "insiderShareholding": "Insider (IV2)"
+        }
         
-#         # 第一階段迴歸（Family作為依變數）
-#         print("\n=== 第一階段迴歸 (Family as dependent variable) ===")
-#         # 由於只有family是內生的，所有base_controls都可以包含在第一階段迴歸中
-#         first_stage_controls = base_controls
-#         first_stage_X = df_2sls[first_stage_controls + iv_vars]
-#         first_stage_X = sm.add_constant(first_stage_X)
-#         first_stage_y = df_2sls['family']
-#         first_stage_model = sm.OLS(first_stage_y, first_stage_X).fit(cov_type='HC1')
+        # 第一階段迴歸（Family作為依變數）
+        print("\n=== 第一階段迴歸 (Family as dependent variable) ===")
+        # 由於只有family是內生的，所有base_controls都可以包含在第一階段迴歸中
+        first_stage_controls = base_controls
+        first_stage_X = df_2sls[first_stage_controls + iv_vars]
+        first_stage_X = sm.add_constant(first_stage_X)
+        first_stage_y = df_2sls['family']
+        first_stage_model = sm.OLS(first_stage_y, first_stage_X).fit(cov_type='HC1')
         
-#         # 第二階段迴歸（分別對三個依變數）
-#         second_stage_models = {}
-#         for model_name, dep_var in models_2sls.items():
-#             print(f"\n=== {model_name}: {dep_var} ===")
+        # 第二階段迴歸（分別對三個依變數）
+        second_stage_models = {}
+        for model_name, dep_var in models_2sls.items():
+            print(f"\n=== {model_name}: {dep_var} ===")
             
-#             # 外生變數（包含所有base_controls，因為只有family是內生的）
-#             exog_vars_list = base_controls
+            # 外生變數（包含所有base_controls，因為只有family是內生的）
+            exog_vars_list = base_controls
             
-#             y = df_2sls[dep_var]
-#             exog = df_2sls[exog_vars_list]
-#             exog = sm.add_constant(exog)  # 加入常數項
-#             endog = df_2sls[endog_vars]
-#             instruments = df_2sls[iv_vars]
+            y = df_2sls[dep_var]
+            exog = df_2sls[exog_vars_list]
+            exog = sm.add_constant(exog)  # 加入常數項
+            endog = df_2sls[endog_vars]
+            instruments = df_2sls[iv_vars]
             
-#             second_stage_models[model_name] = IV2SLS(y, exog, endog, instruments).fit(cov_type='robust')
+            second_stage_models[model_name] = IV2SLS(y, exog, endog, instruments).fit(cov_type='robust')
         
-#         # 建立表格
-#         def get_coef_info(model, var_name):
-#             if var_name in model.params.index:
-#                 coef = model.params[var_name]
-#                 if hasattr(model, 'tstats'):
-#                     tstat = model.tstats[var_name]
-#                     pval = model.pvalues[var_name]
-#                 else:
-#                     tstat = model.tvalues[var_name]
-#                     pval = model.pvalues[var_name]
+        # 建立表格
+        def get_coef_info(model, var_name):
+            if var_name in model.params.index:
+                coef = model.params[var_name]
+                if hasattr(model, 'tstats'):
+                    tstat = model.tstats[var_name]
+                    pval = model.pvalues[var_name]
+                else:
+                    tstat = model.tvalues[var_name]
+                    pval = model.pvalues[var_name]
                 
-#                 stars = ""
-#                 if pval < 0.01:
-#                     stars = "***"
-#                 elif pval < 0.05:
-#                     stars = "**"
-#                 elif pval < 0.1:
-#                     stars = "*"
+                stars = ""
+                if pval < 0.01:
+                    stars = "***"
+                elif pval < 0.05:
+                    stars = "**"
+                elif pval < 0.1:
+                    stars = "*"
                 
-#                 return f"{coef:.4f}{stars}", f"({tstat:.2f})"
-#             else:
-#                 return "", ""
+                return f"{coef:.4f}{stars}", f"({tstat:.2f})"
+            else:
+                return "", ""
         
-#         # 組織表格數據
-#         for var in main_vars + iv_vars:
-#             if var in var_display:
-#                 var_name = var_display[var]
+        # 組織表格數據
+        for var in main_vars + iv_vars:
+            if var in var_display:
+                var_name = var_display[var]
                 
-#                 # 第一階段結果
-#                 if var in endog_vars:
-#                     first_stage_coef, first_stage_t = "", ""
-#                 else:
-#                     first_stage_coef, first_stage_t = get_coef_info(first_stage_model, var)
+                # 第一階段結果
+                if var in endog_vars:
+                    first_stage_coef, first_stage_t = "", ""
+                else:
+                    first_stage_coef, first_stage_t = get_coef_info(first_stage_model, var)
                 
-#                 # 第二階段結果
-#                 model1_coef, model1_t = get_coef_info(second_stage_models["Model 1"], var)
-#                 model2_coef, model2_t = get_coef_info(second_stage_models["Model 2"], var)
-#                 model3_coef, model3_t = get_coef_info(second_stage_models["Model 3"], var)
+                # 第二階段結果
+                model1_coef, model1_t = get_coef_info(second_stage_models["Model 1"], var)
+                model2_coef, model2_t = get_coef_info(second_stage_models["Model 2"], var)
+                model3_coef, model3_t = get_coef_info(second_stage_models["Model 3"], var)
                 
-#                 # 添加係數行
-#                 table_2sls_results.append({
-#                     "Variable": var_name,
-#                     "First Stage": first_stage_coef,
-#                     "Model 1": model1_coef,
-#                     "Model 2": model2_coef,
-#                     "Model 3": model3_coef
-#                 })
+                # 添加係數行
+                table_2sls_results.append({
+                    "Variable": var_name,
+                    "First Stage": first_stage_coef,
+                    "Model 1": model1_coef,
+                    "Model 2": model2_coef,
+                    "Model 3": model3_coef
+                })
                 
-#                 # 添加t值行
-#                 table_2sls_results.append({
-#                     "Variable": "",
-#                     "First Stage": first_stage_t,
-#                     "Model 1": model1_t,
-#                     "Model 2": model2_t,
-#                     "Model 3": model3_t
-#                 })
+                # 添加t值行
+                table_2sls_results.append({
+                    "Variable": "",
+                    "First Stage": first_stage_t,
+                    "Model 1": model1_t,
+                    "Model 2": model2_t,
+                    "Model 3": model3_t
+                })
         
-#         # 添加控制變數和統計量
-#         table_2sls_results.extend([
-#             {"Variable": "Year", "First Stage": "Y", "Model 1": "Y", "Model 2": "Y", "Model 3": "Y"},
-#             {"Variable": "Industry", "First Stage": "Y", "Model 1": "Y", "Model 2": "Y", "Model 3": "Y"}
-#         ])
+        # 添加控制變數和統計量
+        table_2sls_results.extend([
+            {"Variable": "Year", "First Stage": "Y", "Model 1": "Y", "Model 2": "Y", "Model 3": "Y"},
+            {"Variable": "Industry", "First Stage": "Y", "Model 1": "Y", "Model 2": "Y", "Model 3": "Y"}
+        ])
         
-#         # 常數項
-#         const_first, const_first_t = get_coef_info(first_stage_model, "const")
-#         const_1, const_1_t = get_coef_info(second_stage_models["Model 1"], "const")
-#         const_2, const_2_t = get_coef_info(second_stage_models["Model 2"], "const")
-#         const_3, const_3_t = get_coef_info(second_stage_models["Model 3"], "const")
+        # 常數項
+        const_first, const_first_t = get_coef_info(first_stage_model, "const")
+        const_1, const_1_t = get_coef_info(second_stage_models["Model 1"], "const")
+        const_2, const_2_t = get_coef_info(second_stage_models["Model 2"], "const")
+        const_3, const_3_t = get_coef_info(second_stage_models["Model 3"], "const")
         
-#         table_2sls_results.extend([
-#             {"Variable": "_cons", "First Stage": const_first, "Model 1": const_1, "Model 2": const_2, "Model 3": const_3},
-#             {"Variable": "", "First Stage": const_first_t, "Model 1": const_1_t, "Model 2": const_2_t, "Model 3": const_3_t}
-#         ])
+        table_2sls_results.extend([
+            {"Variable": "_cons", "First Stage": const_first, "Model 1": const_1, "Model 2": const_2, "Model 3": const_3},
+            {"Variable": "", "First Stage": const_first_t, "Model 1": const_1_t, "Model 2": const_2_t, "Model 3": const_3_t}
+        ])
         
-#         # 模型統計量
-#         table_2sls_results.extend([
-#             {
-#                 "Variable": "N",
-#                 "First Stage": f"{first_stage_model.nobs}",
-#                 "Model 1": f"{second_stage_models['Model 1'].nobs}",
-#                 "Model 2": f"{second_stage_models['Model 2'].nobs}",
-#                 "Model 3": f"{second_stage_models['Model 3'].nobs}"
-#             },
-#             {
-#                 "Variable": "R-sq",
-#                 "First Stage": f"{first_stage_model.rsquared:.3f}",
-#                 "Model 1": f"{second_stage_models['Model 1'].rsquared:.3f}",
-#                 "Model 2": f"{second_stage_models['Model 2'].rsquared:.3f}",
-#                 "Model 3": f"{second_stage_models['Model 3'].rsquared:.3f}"
-#             }
-#         ])
+        # 模型統計量
+        table_2sls_results.extend([
+            {
+                "Variable": "N",
+                "First Stage": f"{first_stage_model.nobs}",
+                "Model 1": f"{second_stage_models['Model 1'].nobs}",
+                "Model 2": f"{second_stage_models['Model 2'].nobs}",
+                "Model 3": f"{second_stage_models['Model 3'].nobs}"
+            },
+            {
+                "Variable": "R-sq",
+                "First Stage": f"{first_stage_model.rsquared:.3f}",
+                "Model 1": f"{second_stage_models['Model 1'].rsquared:.3f}",
+                "Model 2": f"{second_stage_models['Model 2'].rsquared:.3f}",
+                "Model 3": f"{second_stage_models['Model 3'].rsquared:.3f}"
+            }
+        ])
         
-#         # 儲存結果
-#         df_results_2sls = pd.DataFrame(table_2sls_results)
-#         df_results_2sls.to_csv("iv_2sls_results_with_interaction.csv", index=False)
-#         print("\n已輸出2SLS分析結果表格（有交互項）：iv_2sls_results_with_interaction.csv")
+        # 儲存結果
+        df_results_2sls = pd.DataFrame(table_2sls_results)
+        df_results_2sls.to_csv("iv_2sls_results_with_interaction.csv", index=False)
+        print("\n已輸出2SLS分析結果表格（有交互項）：iv_2sls_results_with_interaction.csv")
         
-#         # 顯示第一階段F統計量
-#         print(f"\n第一階段 F-statistic（有交互項）: {first_stage_model.fvalue:.2f}")
+        # 顯示第一階段F統計量
+        print(f"\n第一階段 F-statistic（有交互項）: {first_stage_model.fvalue:.2f}")
         
-#         # 顯示工具變數相關係數
-#         print("\n工具變數係數（有交互項）:")
-#         for iv in iv_vars:
-#             if iv in first_stage_model.params.index:
-#                 coef = first_stage_model.params[iv]
-#                 pval = first_stage_model.pvalues[iv]
-#                 stars = ""
-#                 if pval < 0.01:
-#                     stars = "***"
-#                 elif pval < 0.05:
-#                     stars = "**"
-#                 elif pval < 0.1:
-#                     stars = "*"
-#                 print(f"{iv}: {coef:.4f}{stars}")
+        # 顯示工具變數相關係數
+        print("\n工具變數係數（有交互項）:")
+        for iv in iv_vars:
+            if iv in first_stage_model.params.index:
+                coef = first_stage_model.params[iv]
+                pval = first_stage_model.pvalues[iv]
+                stars = ""
+                if pval < 0.01:
+                    stars = "***"
+                elif pval < 0.05:
+                    stars = "**"
+                elif pval < 0.1:
+                    stars = "*"
+                print(f"{iv}: {coef:.4f}{stars}")
         
-#         print("\n" + "="*60)
-#         print("2SLS分析（有交互項版本）已完成！")
-#         print("輸出檔案：iv_2sls_results_with_interaction.csv")
-#         print("="*60)
+        print("\n" + "="*60)
+        print("2SLS分析（有交互項版本）已完成！")
+        print("輸出檔案：iv_2sls_results_with_interaction.csv")
+        print("="*60)
         
-#     except ImportError:
-#         print("\n錯誤：需要安裝 linearmodels 套件來進行2SLS分析")
-#         print("請執行：pip install linearmodels")
-#     except Exception as e:
-#         print(f"\n2SLS分析（有交互項）過程中發生錯誤：{str(e)}")
+    except ImportError:
+        print("\n錯誤：需要安裝 linearmodels 套件來進行2SLS分析")
+        print("請執行：pip install linearmodels")
+    except Exception as e:
+        print(f"\n2SLS分析（有交互項）過程中發生錯誤：{str(e)}")
 
 
 ## 進行 2SLS 迴歸分析 - 無交互項版本
@@ -1090,6 +1090,8 @@ else:
         print("請執行：pip install linearmodels")
     except Exception as e:
         print(f"\n2SLS分析（無交互項）過程中發生錯誤：{str(e)}")
+        import traceback
+        traceback.print_exc()
 
 
 print("\n" + "="*80)
@@ -1102,9 +1104,9 @@ print("您可以根據需要分別執行這兩個部分。")
 print("="*80)
 
 
-## 進行 PSM (Propensity Score Matching) 分析 - 沒有交互項版本
+## 進行 PSM (Propensity Score Matching) 分析 - 改進版包含多種參數調整選項
 print("\n" + "="*80)
-print("PSM (傾向分數匹配) 分析 - 沒有交互項版本")
+print("PSM (傾向分數匹配) 分析 - 改進版包含多種參數調整選項")
 print("="*80)
 
 try:
@@ -1123,33 +1125,62 @@ try:
     df_psm = df_with_dummies.dropna(subset=psm_vars).copy()
     print(f"PSM分析樣本數：{len(df_psm)}")
     
-    # 定義PSM函數
-    def perform_psm_analysis(treatment_var, data, control_vars, outcome_vars):
+    # 定義改進版 PSM 函數
+    def perform_enhanced_psm_analysis(
+        treatment_var, 
+        data, 
+        control_vars, 
+        outcome_vars,
+        # 可調整參數
+        binary_cutoff_method='median',  # 'median', 'mean', 'percentile_75', 'percentile_33'
+        matching_method='nearest',      # 'nearest', 'caliper'
+        matching_ratio='1:1',          # '1:1', '1:2', '1:3', '1:5'
+        caliper_width=0.1,             # 當使用 caliper matching 時的容忍度
+        with_replacement=False,         # 是否允許重複匹配
+        trimming_alpha=0.0,            # 修剪極值的比例
+        robust_se=True,                # 是否使用穩健標準誤
+        balance_check=True,            # 是否進行匹配後平衡檢定
+        ps_model_params=None           # 傾向分數模型參數
+    ):
         """
-        執行PSM分析
-        treatment_var: 處理變數名稱 ('family' 或 'gov')
-        data: 資料框
-        control_vars: 控制變數列表
-        outcome_vars: 結果變數列表
+        執行改進版 PSM 分析
         """
-        print(f"\n=== PSM分析：{treatment_var} ===")
+        print(f"\n{'='*60}")
+        print(f"改進版 PSM 分析：{treatment_var}")
+        print(f"二元化方法：{binary_cutoff_method}")
+        print(f"匹配方法：{matching_method}")
+        print(f"匹配比例：{matching_ratio}")
+        if trimming_alpha > 0:
+            print(f"修剪比例：{trimming_alpha*100:.1f}%")
+        print(f"{'='*60}")
         
-        # 檢查處理變數是否為二元變數，如果不是則轉換
+        # 1. 處理變數二元化（改進的切點選擇）
         if data[treatment_var].nunique() > 2:
-            # 如果是連續變數，轉換為二元變數（以中位數為切點）
-            median_val = data[treatment_var].median()
-            data[f'{treatment_var}_binary'] = (data[treatment_var] > median_val).astype(int)
+            if binary_cutoff_method == 'median':
+                cutoff = data[treatment_var].median()
+            elif binary_cutoff_method == 'mean':
+                cutoff = data[treatment_var].mean()
+            elif binary_cutoff_method == 'percentile_75':
+                cutoff = data[treatment_var].quantile(0.75)
+            elif binary_cutoff_method == 'percentile_33':
+                cutoff = data[treatment_var].quantile(0.33)
+            else:
+                cutoff = data[treatment_var].median()  # 預設使用中位數
+            
+            data[f'{treatment_var}_binary'] = (data[treatment_var] > cutoff).astype(int)
             treatment_binary = f'{treatment_var}_binary'
-            print(f"{treatment_var} 為連續變數，以中位數 {median_val:.4f} 為切點轉換為二元變數")
+            print(f"{treatment_var} 為連續變數，使用 {binary_cutoff_method} 方法")
+            print(f"切點：{cutoff:.4f}")
         else:
             treatment_binary = treatment_var
+            print(f"{treatment_var} 已為二元變數")
         
-        # 計算處理組和控制組的樣本數
+        # 計算處理組和控制組樣本數
         treatment_counts = data[treatment_binary].value_counts()
         print(f"控制組 (0): {treatment_counts.get(0, 0)}")
         print(f"處理組 (1): {treatment_counts.get(1, 0)}")
         
-        # 第一階段：估計傾向分數 (Propensity Score)
+        # 2. 估計傾向分數（改進的模型設定）
         X = data[control_vars]
         y = data[treatment_binary]
         
@@ -1157,8 +1188,16 @@ try:
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
         
-        # 使用邏輯迴歸估計傾向分數
-        ps_model = LogisticRegression(random_state=42, max_iter=1000)
+        # 改進的邏輯迴歸參數設定
+        if ps_model_params is None:
+            ps_model_params = {
+                'random_state': 42,
+                'max_iter': 2000,
+                'C': 1.0,  # 可調整正則化強度
+                'solver': 'liblinear'
+            }
+        
+        ps_model = LogisticRegression(**ps_model_params)
         ps_model.fit(X_scaled, y)
         
         # 計算傾向分數
@@ -1166,60 +1205,174 @@ try:
         data['propensity_score'] = propensity_scores
         
         print(f"傾向分數範圍：[{propensity_scores.min():.4f}, {propensity_scores.max():.4f}]")
+        print(f"傾向分數標準差：{propensity_scores.std():.4f}")
         
-        # 第二階段：進行1:1最近鄰匹配（不重複抽樣）
+        # 3. 進行修剪 (Trimming) - 移除極端傾向分數
+        if trimming_alpha > 0:
+            lower_bound = np.quantile(propensity_scores, trimming_alpha)
+            upper_bound = np.quantile(propensity_scores, 1 - trimming_alpha)
+            
+            original_n = len(data)
+            data = data[(data['propensity_score'] >= lower_bound) & 
+                       (data['propensity_score'] <= upper_bound)]
+            trimmed_n = original_n - len(data)
+            
+            print(f"修剪掉 {trimmed_n} 個極端觀測值")
+            
+            # 重新計算處理組和控制組樣本數
+            treatment_counts = data[treatment_binary].value_counts()
+            print(f"修剪後 - 控制組 (0): {treatment_counts.get(0, 0)}")
+            print(f"修剪後 - 處理組 (1): {treatment_counts.get(1, 0)}")
+        
+        # 4. 進行匹配（改進的匹配演算法）
         treated_indices = data[data[treatment_binary] == 1].index.tolist()
         control_indices = data[data[treatment_binary] == 0].index.tolist()
         
-        # 獲取處理組和控制組的傾向分數
         treated_ps = data.loc[treated_indices, 'propensity_score'].values.reshape(-1, 1)
         control_ps = data.loc[control_indices, 'propensity_score'].values.reshape(-1, 1)
         
-        # 計算距離矩陣
-        distances = cdist(treated_ps, control_ps, metric='euclidean')
-        
-        # 進行1:1匹配（不重複抽樣）
-        matched_control_indices = []
-        used_controls = set()
-        
-        for i, treated_idx in enumerate(treated_indices):
-            # 找到最近的未使用控制組
-            available_controls = [j for j, ctrl_idx in enumerate(control_indices) if ctrl_idx not in used_controls]
-            if available_controls:
-                best_match_idx = available_controls[np.argmin(distances[i, available_controls])]
-                matched_control_idx = control_indices[best_match_idx]
-                matched_control_indices.append(matched_control_idx)
-                used_controls.add(matched_control_idx)
+        if matching_method == 'nearest':
+            # 最近鄰匹配
+            distances = cdist(treated_ps, control_ps, metric='euclidean')
+            
+            # 決定匹配比例
+            if matching_ratio == '1:1':
+                n_matches = 1
+            elif matching_ratio == '1:2':
+                n_matches = 2
+            elif matching_ratio == '1:3':
+                n_matches = 3
+            elif matching_ratio == '1:5':
+                n_matches = 5
             else:
-                matched_control_indices.append(None)
+                n_matches = 1  # 預設1:1匹配
+            
+            matched_control_indices = []
+            used_controls = set()
+            
+            for i, treated_idx in enumerate(treated_indices):
+                if with_replacement:
+                    # 允許重複匹配
+                    best_matches = np.argsort(distances[i])[:n_matches]
+                    matched_controls = [control_indices[j] for j in best_matches]
+                else:
+                    # 不允許重複匹配
+                    available_controls = [j for j, ctrl_idx in enumerate(control_indices) 
+                                        if ctrl_idx not in used_controls]
+                    if len(available_controls) >= n_matches:
+                        best_matches_indices = np.argsort(distances[i, available_controls])[:n_matches]
+                        matched_controls = [control_indices[available_controls[j]] for j in best_matches_indices]
+                        used_controls.update(matched_controls)
+                    else:
+                        matched_controls = []
+                
+                matched_control_indices.append(matched_controls)
         
-        # 建立匹配資料集
+        elif matching_method == 'caliper':
+            # Caliper 匹配（帶容忍度）
+            matched_control_indices = []
+            used_controls = set()
+            
+            # 決定匹配比例
+            if matching_ratio == '1:1':
+                n_matches = 1
+            elif matching_ratio == '1:2':
+                n_matches = 2
+            elif matching_ratio == '1:3':
+                n_matches = 3
+            elif matching_ratio == '1:5':
+                n_matches = 5
+            else:
+                n_matches = 1
+            
+            for i, treated_idx in enumerate(treated_indices):
+                treated_score = treated_ps[i][0]
+                
+                # 找到在 caliper 範圍內的控制組
+                valid_controls = []
+                for j, control_idx in enumerate(control_indices):
+                    if not with_replacement and control_idx in used_controls:
+                        continue
+                    
+                    control_score = control_ps[j][0]
+                    if abs(treated_score - control_score) <= caliper_width:
+                        valid_controls.append((j, control_idx, abs(treated_score - control_score)))
+                
+                # 按距離排序，選擇最近的
+                if valid_controls:
+                    valid_controls.sort(key=lambda x: x[2])  # 按距離排序
+                    selected = valid_controls[:min(n_matches, len(valid_controls))]
+                    matched_controls = [ctrl_idx for _, ctrl_idx, _ in selected]
+                    
+                    if not with_replacement:
+                        used_controls.update(matched_controls)
+                else:
+                    matched_controls = []
+                
+                matched_control_indices.append(matched_controls)
+            
+            print(f"Caliper 寬度: {caliper_width}")
+        
+        # 建立匹配後的資料集
         matched_treated = []
         matched_controls = []
         
         for i, treated_idx in enumerate(treated_indices):
-            if matched_control_indices[i] is not None:
-                matched_treated.append(treated_idx)
-                matched_controls.append(matched_control_indices[i])
+            if matched_control_indices[i]:
+                for control_idx in matched_control_indices[i]:
+                    matched_treated.append(treated_idx)
+                    matched_controls.append(control_idx)
         
-        print(f"成功匹配的配對數：{len(matched_treated)}")
+        print(f"成功匹配的處理組觀測值：{len(set(matched_treated))}")
+        print(f"成功匹配的控制組觀測值：{len(matched_controls)}")
+        print(f"總匹配對數：{len(matched_controls)}")
         
         # 建立匹配後的資料集
         matched_data = pd.concat([
-            data.loc[matched_treated].assign(_weight=1),
-            data.loc[matched_controls].assign(_weight=1)
+            data.loc[matched_treated].assign(_weight=1, _matched_type='treated'),
+            data.loc[matched_controls].assign(_weight=1, _matched_type='control')
         ])
         
-        # 第三階段：使用匹配資料進行迴歸分析
+        # 5. 進行匹配後的平衡檢定
+        if balance_check:
+            print(f"\n{'='*40}")
+            print("匹配後平衡檢定")
+            print(f"{'='*40}")
+            
+            for var in control_vars[:5]:  # 檢查前5個控制變數
+                if var in matched_data.columns:
+                    treated_mean = matched_data[matched_data[treatment_binary]==1][var].mean()
+                    control_mean = matched_data[matched_data[treatment_binary]==0][var].mean()
+                    
+                    # 計算標準化偏差
+                    pooled_std = matched_data[var].std()
+                    if pooled_std > 0:
+                        std_bias = (treated_mean - control_mean) / pooled_std
+                    else:
+                        std_bias = 0
+                    
+                    # t檢定
+                    from scipy.stats import ttest_ind
+                    try:
+                        t_stat, p_val = ttest_ind(
+                            matched_data[matched_data[treatment_binary]==1][var].dropna(),
+                            matched_data[matched_data[treatment_binary]==0][var].dropna()
+                        )
+                    except:
+                        p_val = np.nan
+                    
+                    print(f"{var}: 標準化偏差 = {std_bias:.3f}, t檢定 p值 = {p_val:.3f}")
+        
+        # 6. 使用匹配資料進行結果迴歸分析
         results = {}
         
         for outcome_var in outcome_vars:
-            print(f"\n--- {outcome_var} 的 PSM 迴歸結果 ---")
+            print(f"\n{'-'*40}")
+            print(f"{outcome_var} 的匹配後迴歸結果")
+            print(f"{'-'*40}")
             
-            # 準備迴歸變數
-            reg_vars = [treatment_var] + control_vars + list(year_dummies.columns) + list(industry_dummies.columns)
-            
-            # 確保所有變數都存在於匹配資料中
+            # 準備迴歸變數（簡化版：只包含處理變數）
+            reg_vars = [treatment_var]
             available_vars = [var for var in reg_vars if var in matched_data.columns]
             
             X_reg = matched_data[available_vars]
@@ -1228,77 +1381,195 @@ try:
             # 加入常數項
             X_reg = sm.add_constant(X_reg)
             
-            # 使用權重進行OLS迴歸
+            # 使用權重進行迴歸
             weights = matched_data['_weight']
-            model = sm.WLS(y_reg, X_reg, weights=weights).fit()
             
-            # 提取主要變數的係數
-            if treatment_var in model.params.index:
-                coef = model.params[treatment_var]
-                tval = model.tvalues[treatment_var]
-                pval = model.pvalues[treatment_var]
+            try:
+                if robust_se:
+                    model = sm.WLS(y_reg, X_reg, weights=weights).fit(cov_type='HC1')
+                else:
+                    model = sm.WLS(y_reg, X_reg, weights=weights).fit()
                 
-                stars = ""
-                if pval < 0.01:
-                    stars = "***"
-                elif pval < 0.05:
-                    stars = "**"
-                elif pval < 0.1:
-                    stars = "*"
-                
-                results[outcome_var] = {
-                    'coefficient': coef,
-                    't_value': tval,
-                    'p_value': pval,
-                    'significance': stars,
-                    'n_obs': model.nobs,
-                    'r_squared': model.rsquared
-                }
-                
-                print(f"{treatment_var}: {coef:.4f}{stars} (t={tval:.2f})")
-                print(f"觀測數: {model.nobs}")
-                print(f"R-squared: {model.rsquared:.3f}")
-            else:
-                print(f"警告：{treatment_var} 不在迴歸結果中")
+                # 提取主要變數的係數
+                if treatment_var in model.params.index:
+                    coef = model.params[treatment_var]
+                    tval = model.tvalues[treatment_var]
+                    pval = model.pvalues[treatment_var]
+                    
+                    # 計算信賴區間
+                    conf_int = model.conf_int().loc[treatment_var]
+                    
+                    stars = ""
+                    if pval < 0.01:
+                        stars = "***"
+                    elif pval < 0.05:
+                        stars = "**"
+                    elif pval < 0.1:
+                        stars = "*"
+                    
+                    results[outcome_var] = {
+                        'coefficient': coef,
+                        't_value': tval,
+                        'p_value': pval,
+                        'significance': stars,
+                        'n_obs': model.nobs,
+                        'r_squared': model.rsquared,
+                        'conf_int_lower': conf_int[0],
+                        'conf_int_upper': conf_int[1]
+                    }
+                    
+                    print(f"{treatment_var}: {coef:.4f}{stars} (t={tval:.2f}, p={pval:.3f})")
+                    print(f"95% 信賴區間: [{conf_int[0]:.4f}, {conf_int[1]:.4f}]")
+                    print(f"觀測數: {model.nobs}")
+                    print(f"R-squared: {model.rsquared:.3f}")
+                else:
+                    print(f"警告：{treatment_var} 不在迴歸結果中")
+                    
+            except Exception as e:
+                print(f"迴歸分析錯誤：{str(e)}")
+                results[outcome_var] = {'error': str(e)}
         
         return results, matched_data
     
-    # 定義控制變數（對應STATA中的變數）
+    # 定義控制變數和結果變數
     control_vars_psm = ['g', 'size', 'lev', 'roa', 'mtb', 'kz', 'boardSize', 'CEOdual', 'CSRcmte']
     outcome_vars_psm = ['gap', 'gap_e', 'gap_s']
     
-    # 執行Family的PSM分析
-    print("\n" + "="*60)
-    print("Family 變數的 PSM 分析")
-    print("="*60)
+    # 定義多種規格設定進行比較
+    specifications = [
+        {
+            'name': '基準模型（中位數切點）',
+            'params': {
+                'binary_cutoff_method': 'median',
+                'matching_method': 'nearest',
+                'matching_ratio': '1:1',
+                'with_replacement': False,
+                'trimming_alpha': 0.0
+            }
+        },
+        {
+            'name': '改進模型1（75百分位切點）',
+            'params': {
+                'binary_cutoff_method': 'percentile_75',
+                'matching_method': 'nearest',
+                'matching_ratio': '1:1',
+                'with_replacement': False,
+                'trimming_alpha': 0.05
+            }
+        },
+        {
+            'name': '改進模型2（Caliper匹配）',
+            'params': {
+                'binary_cutoff_method': 'median',
+                'matching_method': 'caliper',
+                'matching_ratio': '1:1',
+                'caliper_width': 0.05,
+                'with_replacement': False,
+                'trimming_alpha': 0.05
+            }
+        },
+        {
+            'name': '改進模型3（1:2匹配）',
+            'params': {
+                'binary_cutoff_method': 'median',
+                'matching_method': 'nearest',
+                'matching_ratio': '1:2',
+                'with_replacement': False,
+                'trimming_alpha': 0.05
+            }
+        }
+    ]
     
-    family_psm_results, family_matched_data = perform_psm_analysis(
-        treatment_var='family',
-        data=df_psm.copy(),
-        control_vars=control_vars_psm,
-        outcome_vars=outcome_vars_psm
-    )
+    # 儲存所有結果
+    all_results = {}
     
-    # 執行Gov的PSM分析
-    print("\n" + "="*60)
-    print("Gov 變數的 PSM 分析")
-    print("="*60)
+    # 對每個規格設定進行分析
+    for spec in specifications:
+        print(f"\n{'='*80}")
+        print(f"正在執行：{spec['name']}")
+        print(f"{'='*80}")
+        
+        # Family PSM 分析
+        print(f"\n{'-'*60}")
+        print("Family 變數分析")
+        print(f"{'-'*60}")
+        
+        family_results, family_matched = perform_enhanced_psm_analysis(
+            treatment_var='family',
+            data=df_psm.copy(),
+            control_vars=control_vars_psm,
+            outcome_vars=outcome_vars_psm,
+            **spec['params']
+        )
+        
+        # Gov PSM 分析
+        print(f"\n{'-'*60}")
+        print("Gov 變數分析")
+        print(f"{'-'*60}")
+        
+        gov_results, gov_matched = perform_enhanced_psm_analysis(
+            treatment_var='gov',
+            data=df_psm.copy(),
+            control_vars=control_vars_psm,
+            outcome_vars=outcome_vars_psm,
+            **spec['params']
+        )
+        
+        all_results[spec['name']] = {
+            'family': family_results,
+            'gov': gov_results
+        }
     
-    gov_psm_results, gov_matched_data = perform_psm_analysis(
-        treatment_var='gov',
-        data=df_psm.copy(),
-        control_vars=control_vars_psm,
-        outcome_vars=outcome_vars_psm
-    )
+    # 整理比較結果為表格形式
+    def create_comparison_table(all_results, outcome_vars):
+        """建立多規格比較表格"""
+        table_rows = []
+        
+        for outcome in outcome_vars:
+            for spec_name, results in all_results.items():
+                # Family 結果
+                if outcome in results['family'] and 'coefficient' in results['family'][outcome]:
+                    fr = results['family'][outcome]
+                    family_result = f"{fr['coefficient']:.4f}{fr['significance']} (t={fr['t_value']:.2f})"
+                else:
+                    family_result = "N/A"
+                
+                # Gov 結果
+                if outcome in results['gov'] and 'coefficient' in results['gov'][outcome]:
+                    gr = results['gov'][outcome]
+                    gov_result = f"{gr['coefficient']:.4f}{gr['significance']} (t={gr['t_value']:.2f})"
+                else:
+                    gov_result = "N/A"
+                
+                table_rows.append({
+                    'Outcome': outcome.upper(),
+                    'Specification': spec_name,
+                    'Family_PSM': family_result,
+                    'Gov_PSM': gov_result
+                })
+        
+        return pd.DataFrame(table_rows)
     
-    # 整理PSM結果為表格形式
-    def create_psm_results_table(family_results, gov_results, outcome_vars):
-        """建立PSM結果表格"""
+    # 建立並儲存比較表格
+    comparison_table = create_comparison_table(all_results, outcome_vars_psm)
+    comparison_table.to_csv("psm_multiple_specifications_comparison.csv", index=False, encoding='utf-8-sig')
+    
+    print(f"\n{'='*80}")
+    print("PSM 多規格比較結果")
+    print(f"{'='*80}")
+    print(comparison_table.to_string(index=False))
+    print(f"\n已輸出比較結果：psm_multiple_specifications_comparison.csv")
+    
+    # 也保存基準模型的詳細結果（與原來格式相容）
+    baseline_results = all_results['基準模型（中位數切點）']
+    
+    def create_baseline_table(family_results, gov_results, outcome_vars):
+        """建立基準模型結果表格（相容原格式）"""
         table_rows = []
         
         for outcome in outcome_vars:
             # Family結果
-            if outcome in family_results:
+            if outcome in family_results and 'coefficient' in family_results[outcome]:
                 fr = family_results[outcome]
                 family_coef = f"{fr['coefficient']:.4f}{fr['significance']}"
                 family_t = f"({fr['t_value']:.2f})"
@@ -1307,7 +1578,7 @@ try:
                 family_t = ""
             
             # Gov結果
-            if outcome in gov_results:
+            if outcome in gov_results and 'coefficient' in gov_results[outcome]:
                 gr = gov_results[outcome]
                 gov_coef = f"{gr['coefficient']:.4f}{gr['significance']}"
                 gov_t = f"({gr['t_value']:.2f})"
@@ -1330,35 +1601,36 @@ try:
             })
         
         # 添加觀測數
-        if outcome_vars[0] in family_results and outcome_vars[0] in gov_results:
-            table_rows.append({
-                'Outcome': 'N',
-                'Family_PSM': f"{family_results[outcome_vars[0]]['n_obs']}",
-                'Gov_PSM': f"{gov_results[outcome_vars[0]]['n_obs']}"
-            })
+        if outcome_vars[0] in family_results and 'n_obs' in family_results[outcome_vars[0]]:
+            if outcome_vars[0] in gov_results and 'n_obs' in gov_results[outcome_vars[0]]:
+                table_rows.append({
+                    'Outcome': 'N',
+                    'Family_PSM': f"{family_results[outcome_vars[0]]['n_obs']}",
+                    'Gov_PSM': f"{gov_results[outcome_vars[0]]['n_obs']}"
+                })
         
         return pd.DataFrame(table_rows)
     
-    # 建立並儲存PSM結果表格
-    psm_results_table = create_psm_results_table(family_psm_results, gov_psm_results, outcome_vars_psm)
-    psm_results_table.to_csv("psm_results_no_interaction.csv", index=False, encoding='utf-8-sig')
+    # 建立基準模型表格
+    baseline_table = create_baseline_table(baseline_results['family'], baseline_results['gov'], outcome_vars_psm)
+    baseline_table.to_csv("psm_results_enhanced_baseline.csv", index=False, encoding='utf-8-sig')
     
     print("\n" + "="*80)
-    print("PSM 分析結果摘要")
+    print("PSM 分析結果摘要（基準模型）")
     print("="*80)
-    print(psm_results_table)
-    print("\n已輸出 PSM 分析結果表格：psm_results_no_interaction.csv")
-    
-    # 儲存匹配後的資料
-    family_matched_data.to_csv("family_matched_data.csv", index=False, encoding='utf-8-sig')
-    gov_matched_data.to_csv("gov_matched_data.csv", index=False, encoding='utf-8-sig')
-    print("已儲存匹配後的資料：family_matched_data.csv, gov_matched_data.csv")
+    print(baseline_table)
+    print("\n已輸出基準模型結果：psm_results_enhanced_baseline.csv")
     
     print("\n" + "="*80)
-    print("PSM 分析完成！")
-    print("1. PSM 結果表格：psm_results_no_interaction.csv")
-    print("2. Family 匹配資料：family_matched_data.csv")
-    print("3. Gov 匹配資料：gov_matched_data.csv")
+    print("PSM 改進分析完成！")
+    print("輸出檔案：")
+    print("1. 多規格比較：psm_multiple_specifications_comparison.csv")
+    print("2. 基準模型結果：psm_results_enhanced_baseline.csv")
+    print("\n參數調整建議：")
+    print("- 使用 75 百分位切點可能會產生更極端的處理組")
+    print("- Caliper 匹配可提升匹配品質")
+    print("- 1:2 或更高比例匹配可增加統計檢定力")
+    print("- 修剪極值可減少偏誤")
     print("="*80)
     
 except ImportError as e:
