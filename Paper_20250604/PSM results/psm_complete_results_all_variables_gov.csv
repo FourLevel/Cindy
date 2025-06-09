@@ -1,0 +1,61 @@
+﻿Variable,Outcome,Type,基準模型（中位數切點）,改進模型1（75百分位切點）,改進模型2（Caliper匹配）,改進模型3（1:2匹配）
+Gov,GAP,Coefficient,0.0082,0.0155*,0.0155*,0.0161***
+Gov,GAP,t-value,(1.03),(1.78),(1.78),(2.59)
+Gov,GAP_E,Coefficient,-0.0079,-0.0025,-0.0025,-0.0001
+Gov,GAP_E,t-value,(-0.81),(-0.24),(-0.24),(-0.01)
+Gov,GAP_S,Coefficient,0.0242***,0.0333***,0.0333***,0.0322***
+Gov,GAP_S,t-value,(2.89),(3.66),(3.66),(5.02)
+G,GAP,Coefficient,-0.0037***,-0.0038***,-0.0038***,-0.0039***
+G,GAP,t-value,(-16.05),(-15.57),(-15.57),(-22.26)
+G,GAP_E,Coefficient,-0.0034***,-0.0035***,-0.0035***,-0.0036***
+G,GAP_E,t-value,(-12.85),(-12.39),(-12.39),(-17.92)
+G,GAP_S,Coefficient,-0.0040***,-0.0042***,-0.0042***,-0.0043***
+G,GAP_S,t-value,(-17.59),(-17.04),(-17.04),(-24.18)
+Size,GAP,Coefficient,-0.0051,-0.0086*,-0.0086*,-0.0046
+Size,GAP,t-value,(-1.40),(-1.88),(-1.88),(-1.45)
+Size,GAP_E,Coefficient,0.0025,-0.0021,-0.0021,0.0019
+Size,GAP_E,t-value,(0.59),(-0.40),(-0.40),(0.50)
+Size,GAP_S,Coefficient,-0.0127***,-0.0148***,-0.0148***,-0.0109***
+Size,GAP_S,t-value,(-3.11),(-2.94),(-2.94),(-3.11)
+Lev,GAP,Coefficient,-0.0002,-0.0013,-0.0013,-0.0009
+Lev,GAP,t-value,(-0.45),(-0.56),(-0.56),(-0.51)
+Lev,GAP_E,Coefficient,-0.0005,-0.0019,-0.0019,-0.0010
+Lev,GAP_E,t-value,(-0.79),(-0.72),(-0.72),(-0.54)
+Lev,GAP_S,Coefficient,0.0000,-0.0007,-0.0007,-0.0008
+Lev,GAP_S,t-value,(0.09),(-0.21),(-0.21),(-0.33)
+ROA,GAP,Coefficient,0.1070**,0.1312**,0.1312**,0.0765*
+ROA,GAP,t-value,(1.98),(2.10),(2.10),(1.90)
+ROA,GAP_E,Coefficient,0.1063,0.1789**,0.1789**,0.0797*
+ROA,GAP_E,t-value,(1.62),(2.42),(2.42),(1.70)
+ROA,GAP_S,Coefficient,0.1050*,0.0840,0.0840,0.0763
+ROA,GAP_S,t-value,(1.73),(1.20),(1.20),(1.62)
+MTB,GAP,Coefficient,-0.0322,-0.1859,-0.1859,-0.0595
+MTB,GAP,t-value,(-0.26),(-1.21),(-1.21),(-0.56)
+MTB,GAP_E,Coefficient,0.0316,-0.1374,-0.1374,0.0025
+MTB,GAP_E,t-value,(0.22),(-0.73),(-0.73),(0.02)
+MTB,GAP_S,Coefficient,-0.1017,-0.2410,-0.2410,-0.1288
+MTB,GAP_S,t-value,(-0.75),(-1.48),(-1.48),(-1.18)
+KZ,GAP,Coefficient,-0.0000,0.0004,0.0004,-0.0009
+KZ,GAP,t-value,(-0.00),(0.28),(0.28),(-0.78)
+KZ,GAP_E,Coefficient,-0.0039***,-0.0024,-0.0024,-0.0041***
+KZ,GAP_E,t-value,(-3.50),(-1.40),(-1.40),(-3.28)
+KZ,GAP_S,Coefficient,0.0039***,0.0032*,0.0032*,0.0022*
+KZ,GAP_S,t-value,(4.12),(1.80),(1.80),(1.79)
+Board Size,GAP,Coefficient,-0.0084***,-0.0082***,-0.0082***,-0.0076***
+Board Size,GAP,t-value,(-7.87),(-7.36),(-7.36),(-9.67)
+Board Size,GAP_E,Coefficient,-0.0062***,-0.0057***,-0.0057***,-0.0054***
+Board Size,GAP_E,t-value,(-4.81),(-4.26),(-4.26),(-5.74)
+Board Size,GAP_S,Coefficient,-0.0105***,-0.0106***,-0.0106***,-0.0099***
+Board Size,GAP_S,t-value,(-9.82),(-9.46),(-9.46),(-11.67)
+CEO Duality,GAP,Coefficient,-0.0316**,-0.0377**,-0.0377**,-0.0280***
+CEO Duality,GAP,t-value,(-2.14),(-2.43),(-2.43),(-2.59)
+CEO Duality,GAP_E,Coefficient,-0.0386**,-0.0475**,-0.0475**,-0.0344***
+CEO Duality,GAP_E,t-value,(-2.20),(-2.57),(-2.57),(-2.71)
+CEO Duality,GAP_S,Coefficient,-0.0239,-0.0272*,-0.0272*,-0.0211*
+CEO Duality,GAP_S,t-value,(-1.54),(-1.67),(-1.67),(-1.87)
+CSR Committee,GAP,Coefficient,-0.0352***,-0.0284**,-0.0284**,-0.0310***
+CSR Committee,GAP,t-value,(-3.00),(-2.29),(-2.29),(-3.61)
+CSR Committee,GAP_E,Coefficient,-0.0093,-0.0040,-0.0040,-0.0044
+CSR Committee,GAP_E,t-value,(-0.67),(-0.27),(-0.27),(-0.43)
+CSR Committee,GAP_S,Coefficient,-0.0610***,-0.0529***,-0.0529***,-0.0575***
+CSR Committee,GAP_S,t-value,(-4.94),(-4.05),(-4.05),(-6.34)
